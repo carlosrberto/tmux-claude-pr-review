@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.directory
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+.*.sw[a-z]
+
+# Logs & temp
+*.log
+tmp/
+scratch/
+
+# Local config (lives in ~/.config; never commit a real one here)
+/config

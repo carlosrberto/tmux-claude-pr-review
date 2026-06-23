@@ -1,0 +1,35 @@
+# tmux-claude-pr-review configuration.
+#
+# Copy this to:  ~/.config/tmux-claude-pr-review/config
+# (or set `set -g @claude-pr-review-config '/path/to/config'` in tmux.conf)
+#
+# Format is plain `key = value`. Lists are comma- or space-separated.
+
+# GitHub orgs. Every open PR across each org is listed (subject to `filter`).
+orgs = your-org, your-org
+
+# Specific owner/name repos to include.
+repos = your-org/web-app
+
+# Which PRs to show. One of:
+#   all               every open PR (default)
+#   involves          PRs that involve you (author, reviewer, assignee, mention)
+#   review-requested  PRs awaiting your review
+#   author            PRs you opened
+#   assigned          PRs assigned to you
+filter = all
+
+# Max PRs fetched per query (orgs query and repos query each).
+limit = 50
+
+# Where your local clones live. The clone matching a PR's repo becomes the
+# review window's working directory so /review has the code on disk. If no
+# clone is found, the window opens in $HOME.
+clone_base = ~/projects
+
+# tmux session that holds the review windows.
+session = Code Review
+
+# Slash command run in the new Claude session; the PR URL is appended, i.e.
+# the window ends up running:  claude "/review <pr-url>"
+review_command = /review
