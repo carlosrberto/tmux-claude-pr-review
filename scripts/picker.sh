@@ -10,6 +10,10 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREVIEW_WIDTH="$(tmux show-option -gqv @claude-pr-review-preview-width)"
 [ -n "$PREVIEW_WIDTH" ] || PREVIEW_WIDTH="60%"
 
+# Shown in the popup while the (network-bound) gh query runs, until fzf starts
+# and takes over the screen.
+printf '\n  Loading open PRs…\n'
+
 # list_prs.sh prints PRs on stdout, or an error on stderr with non-zero exit.
 if ! list="$("$DIR/list_prs.sh" 2>&1)"; then
   tmux display-message "claude-pr-review: ${list:-failed to list PRs}"
