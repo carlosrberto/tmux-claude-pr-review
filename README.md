@@ -116,7 +116,7 @@ Behaviour:
 
 ```tmux
 set -g @claude-pr-review-key           'R'    # prefix key (default: R)
-set -g @claude-pr-review-width         '90%'  # popup width
+set -g @claude-pr-review-width         '60%'  # popup width
 set -g @claude-pr-review-height        '85%'  # popup height
 set -g @claude-pr-review-preview-width '60%'  # preview share of the popup
 ```
