@@ -1,13 +1,13 @@
 # tmux-claude-pr-review
 
-A tmux plugin that pops up a searchable list of open GitHub PRs for the orgs and
-repos you care about, and — on selecting one — spins up a Claude Code **code
+A tmux plugin that pops up a searchable list of open GitHub PRs for the repos
+you care about, and — on selecting one — spins up a Claude Code **code
 review** session for it: a window named `<repo>#<pr>` in your "Code Review"
 session, opened in the repo's local clone, running `claude "/review <pr-url>"`.
 
 ## How it works
 
-- **List** — `gh search prs` for your configured orgs and repos, in an `fzf`
+- **List** — `gh search prs` for your configured repos, in an `fzf`
   popup (`display-popup`).
 - **Preview** — `gh pr view` of the highlighted PR.
 - **Action** — selecting a PR opens (or re-focuses) a review window and launches
@@ -38,31 +38,28 @@ run-shell /path/to/tmux-claude-pr-review/claude_pr_review.tmux
 
 ## Configure
 
-Copy the sample config and edit it:
+Everything is set through tmux user options in `~/.tmux.conf`:
 
-```sh
-mkdir -p ~/.config/tmux-claude-pr-review
-cp config.example ~/.config/tmux-claude-pr-review/config
+```tmux
+# Repos to list PRs for (owner/name) — ONLY these are shown. Space/comma list.
+set -g @claude-pr-review-repos      'your-org/web-app your-org/api'
+
+# Which PRs, within those repos:
+#   all | involves | review-requested | author | assigned   (default: all)
+set -g @claude-pr-review-filter     'all'
+
+set -g @claude-pr-review-limit      '50'           # max PRs fetched
+set -g @claude-pr-review-clone-base '~/projects'   # where local clones live
+set -g @claude-pr-review-session    'Code Review'  # tmux session for reviews
+set -g @claude-pr-review-cmd        '/review'      # slash command (PR url appended)
 ```
 
-```ini
-orgs   = your-org, your-org
-repos  = your-org/web-app
-filter = all              # all | involves | review-requested | author | assigned
-limit  = 50
-clone_base     = ~/projects
-session        = Code Review
-review_command = /review
-```
+`@claude-pr-review-repos` is required; the rest have the defaults shown. Reload
+with `tmux source-file ~/.tmux.conf` after changing them.
 
-> **Tip on `filter`.** `all` lists *every* open PR in the orgs — which includes
-> a lot of bot/infra noise (dependabot, CI). For an actual review queue you
-> probably want `review-requested` (PRs awaiting your review) or `involves`
-> (PRs you're part of). Keep specific `repos` if you want to see everything in
-> those, and narrow `orgs` with the filter.
-
-Point the plugin at a different config file with
-`set -g @claude-pr-review-config '/path/to/config'`.
+> **Tip on `filter`.** `all` shows every open PR in the listed repos (including
+> bot PRs like dependabot). For a focused review queue, `review-requested`
+> (awaiting your review) or `involves` (PRs you're part of) is usually better.
 
 ## Usage
 
@@ -115,23 +112,21 @@ Behaviour:
 - Prints `<session>:<window>` on success (or the pane id with `--print-pane`),
   so an automation can target the window afterwards.
 
-## Configuration options (tmux)
+## Appearance / key options (tmux)
 
 ```tmux
 set -g @claude-pr-review-key           'R'    # prefix key (default: R)
 set -g @claude-pr-review-width         '90%'  # popup width
 set -g @claude-pr-review-height        '85%'  # popup height
 set -g @claude-pr-review-preview-width '60%'  # preview share of the popup
-set -g @claude-pr-review-config        '~/.config/tmux-claude-pr-review/config'
 ```
 
 ## Layout
 
 ```
 claude_pr_review.tmux        # plugin entry (sourced/executed by TPM)
-config.example               # sample config
 scripts/
-  config.sh                  # config locator + cfg() (sourced)
+  config.sh                  # reads @claude-pr-review-* tmux options (sourced)
   list_prs.sh                # gh query -> one TSV line per PR
   picker.sh                  # fzf popup + gh pr view preview
   open_review.sh             # ensure session/window + launch claude "/review"

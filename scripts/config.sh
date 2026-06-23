@@ -1,21 +1,32 @@
 #!/usr/bin/env bash
-# Sourced by the other scripts. Locates the config file and provides cfg().
+# Sourced by the other scripts. Configuration comes from tmux user options
+# (set in tmux.conf), e.g.:
 #
-# Resolution order:
-#   1. tmux option @claude-pr-review-config
-#   2. $XDG_CONFIG_HOME/tmux-claude-pr-review/config (or ~/.config/...)
+#   set -g @claude-pr-review-repos      'your-org/web-app your-org/api'
+#   set -g @claude-pr-review-filter     'review-requested'
+#   set -g @claude-pr-review-limit      '50'
+#   set -g @claude-pr-review-clone-base '~/projects'
+#   set -g @claude-pr-review-session    'Code Review'
+#   set -g @claude-pr-review-cmd        '/review'
 
-_cpr_find_config() {
-  local c
-  c="$(tmux show-option -gqv @claude-pr-review-config 2>/dev/null || true)"
-  [ -n "$c" ] || c="${XDG_CONFIG_HOME:-$HOME/.config}/tmux-claude-pr-review/config"
-  printf '%s' "$c"
+_opt() { tmux show-option -gqv "$1" 2>/dev/null || true; }
+
+# cfg <logical-key> -> value of the matching tmux option (empty if unset).
+cfg() {
+  case "$1" in
+    filter)         _opt @claude-pr-review-filter ;;
+    limit)          _opt @claude-pr-review-limit ;;
+    session)        _opt @claude-pr-review-session ;;
+    review_command) _opt @claude-pr-review-cmd ;;
+    clone_base)     _opt @claude-pr-review-clone-base ;;
+    *) ;;
+  esac
 }
 
-CONFIG="$(_cpr_find_config)"
-
-# cfg <key> -> trimmed value of the first `key = value` line (empty if missing).
-cfg() {
-  [ -f "$CONFIG" ] || return 0
-  sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" "$CONFIG" | sed 's/[[:space:]]*$//' | head -1
+# cfg_list <logical-key> -> one value per line (option split on commas/whitespace).
+cfg_list() {
+  case "$1" in
+    repos) _opt @claude-pr-review-repos | tr ',' ' ' | tr -s '[:space:]' '\n' | grep -v '^$' || true ;;
+    *) ;;
+  esac
 }

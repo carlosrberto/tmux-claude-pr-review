@@ -2,7 +2,7 @@
 #
 # Plugin entry point, sourced by TPM (Tmux Plugin Manager) at tmux start.
 # Binds a key (default: prefix + R) that opens a popup listing open PRs for the
-# configured orgs/repos; selecting one opens a Claude review session.
+# configured repos; selecting one opens a Claude review session.
 #
 # The plugin version lives in the top-level VERSION file.
 #

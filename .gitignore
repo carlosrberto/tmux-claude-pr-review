@@ -28,5 +28,3 @@ Desktop.ini
 tmp/
 scratch/
 
-# Local config (lives in ~/.config; never commit a real one here)
-/config

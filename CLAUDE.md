@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A TPM-installable tmux plugin. `prefix + R` opens a `display-popup` with an
-`fzf` list of open GitHub PRs (from `gh`) for configured orgs/repos; selecting
+`fzf` list of open GitHub PRs (from `gh`) for configured repos; selecting
 one opens a Claude Code review session for that PR.
 
 ## Commands
@@ -30,17 +30,17 @@ tmux list-keys -T prefix R
 
 Four shell scripts; no build step. Data flows config → list → pick → act.
 
-- **`scripts/config.sh`** — sourced by the others. Locates the config file
-  (`@claude-pr-review-config`, else `$XDG_CONFIG_HOME/tmux-claude-pr-review/config`)
-  and defines `cfg <key>` to read a trimmed `key = value` line.
+- **`scripts/config.sh`** — sourced by the others. Reads configuration from
+  `@claude-pr-review-*` tmux options and exposes `cfg <logical-key>` (scalars)
+  and `cfg_list <logical-key>` (the repos list, split on commas/whitespace).
+  `cfg` maps logical keys to option names, so callers stay option-agnostic.
 
 - **`scripts/list_prs.sh`** — emits one TSV record per PR:
   `url <TAB> repoWithOwner <TAB> repoName <TAB> number <TAB> title <TAB> author`.
-  Orgs and repos are queried in two separate `gh search prs` calls (repeated
-  `--owner=` / `--repo=` flags), merged and deduped by URL. The `filter` config
-  key maps to a gh `@me` qualifier (`involves`/`review-requested`/`author`/
-  `assigned`); `all` adds none. Uses gh's built-in `--jq` — no standalone jq
-  dependency.
+  Only the repos in `@claude-pr-review-repos` are queried — one `gh search prs`
+  call with a `--repo=` flag per repo (deduped by URL). The `filter` option maps
+  to a gh `@me` qualifier (`involves`/`review-requested`/`author`/`assigned`);
+  `all` adds none. Uses gh's built-in `--jq` — no standalone jq dependency.
 
 - **`scripts/picker.sh`** — projects the record to hidden action fields
   (`url`, `repoName`, `number`) plus an aligned display block, then `fzf`
@@ -105,7 +105,7 @@ trailing period.
 - Scope = the area touched: `config`, `list`, `picker`, `review`, `tmux`,
   `install` (or omit for repo-wide changes).
 - Examples:
-  - `feat(list): query orgs and repos separately and dedupe by url`
+  - `feat(list): query only the configured repos and dedupe by url`
   - `feat(review): launch claude with /review as the shell's initial command`
   - `fix(picker): keep url as a hidden field for the preview and action`
   - `docs(config): warn that filter=all includes bot PRs`
