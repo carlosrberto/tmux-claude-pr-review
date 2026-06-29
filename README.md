@@ -25,7 +25,7 @@ session, opened in the repo's local clone, running `claude "/review <pr-url>"`.
 ### With [TPM](https://github.com/tmux-plugins/tpm)
 
 ```tmux
-set -g @plugin 'youruser/tmux-claude-pr-review'
+set -g @plugin 'carlosrberto/tmux-claude-pr-review'
 ```
 
 Then `prefix + I`.
@@ -65,11 +65,11 @@ with `tmux source-file ~/.tmux.conf` after changing them.
 
 Press **`prefix + R`** to open the picker.
 
-| Key      | Action                                  |
-| -------- | --------------------------------------- |
-| `enter`  | Open / focus the review session for it  |
-| `esc`    | Close the popup                         |
-| (type)   | Fuzzy-filter the list                   |
+| Key     | Action                                 |
+| ------- | -------------------------------------- |
+| `enter` | Open / focus the review session for it |
+| `esc`   | Close the popup                        |
+| (type)  | Fuzzy-filter the list                  |
 
 On `enter`:
 
@@ -97,17 +97,18 @@ scripts/open_review.sh -b your-org/web-app 229
 scripts/open_review.sh -b your-org/web-app#229
 
 # For scripting: print the pane id instead of "<session>:<window>":
-scripts/open_review.sh -b --print-pane <pr> 
+scripts/open_review.sh -b --print-pane <pr>
 
 # Preview what it would do without touching tmux:
 scripts/open_review.sh --dry-run <pr>
 ```
 
 Behaviour:
+
 - Idempotent — re-running for the same PR just refocuses its window; Claude is
   not relaunched.
 - `--background` only suppresses switching your client to the review session
-  (it does *not* open/raise the tmux window); the window and Claude are still
+  (it does _not_ open/raise the tmux window); the window and Claude are still
   created. Without it, your client switches to the review session.
 - Prints `<session>:<window>` on success (or the pane id with `--print-pane`),
   so an automation can target the window afterwards.
