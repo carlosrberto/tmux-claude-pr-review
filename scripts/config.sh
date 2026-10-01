@@ -5,7 +5,7 @@
 #   set -g @claude-pr-review-repos      'your-org/web-app your-org/api'
 #   set -g @claude-pr-review-filter     'review-requested'
 #   set -g @claude-pr-review-limit      '50'
-#   set -g @claude-pr-review-clone-base '~/projects'
+#   set -g @claude-pr-review-clone-base '~/projects ~/work'   # searched in order
 #   set -g @claude-pr-review-session    'Code Review'
 #   set -g @claude-pr-review-cmd        '/review'
 #
@@ -40,7 +40,6 @@ cfg() {
     limit)             _opt @claude-pr-review-limit ;;
     session)           _opt @claude-pr-review-session ;;
     review_command)    _opt @claude-pr-review-cmd ;;
-    clone_base)        _opt @claude-pr-review-clone-base ;;
     watch)             _or "$(_opt @claude-pr-review-watch)" off ;;
     watch_key)         _opt @claude-pr-review-watch-key ;;
     watch_filter)      _or "$(_opt @claude-pr-review-watch-filter)" mine ;;
@@ -64,6 +63,7 @@ cfg_list() {
   local v
   case "$1" in
     repos)              v="$(_opt @claude-pr-review-repos)" ;;
+    clone_base)         v="$(_or "$(_opt @claude-pr-review-clone-base)" "$HOME/projects")" ;;
     watch_repos)        v="$(_or "$(_opt @claude-pr-review-watch-repos)" "$(_opt @claude-pr-review-repos)")" ;;
     watch_skip_authors) v="$(_or "$(_opt @claude-pr-review-watch-skip-authors)" "@me dependabot renovate")" ;;
     watch_skip_labels)  v="$(_opt @claude-pr-review-watch-skip-labels)" ;;

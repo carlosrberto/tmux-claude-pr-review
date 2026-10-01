@@ -56,7 +56,7 @@ set -g @claude-pr-review-repos      'your-org/web-app your-org/api'
 set -g @claude-pr-review-filter     'all'
 
 set -g @claude-pr-review-limit      '50'           # max PRs fetched
-set -g @claude-pr-review-clone-base '~/projects'   # where local clones live
+set -g @claude-pr-review-clone-base '~/projects'   # where local clones live (list, searched in order)
 set -g @claude-pr-review-session    'Code Review'  # tmux session for reviews
 set -g @claude-pr-review-cmd        '/review'      # slash command (PR url appended)
 ```
@@ -87,7 +87,9 @@ On `enter`:
 
 1. The **`Code Review`** session is created if missing.
 2. A window **`<repo-name>#<pr-number>`** (e.g. `web-app#229`) is created
-   if missing, in the repo's local clone (found under `clone_base`, else `$HOME`).
+   if missing, in the repo's local clone, else `$HOME`. Each `clone_base` folder
+   is searched in order, up to 3 levels deep; a dir whose `origin` remote is the
+   PR's `owner/repo` wins over one that only has the repo's name.
 3. That window runs `claude "/review <pr-url>"`.
 4. Re-selecting the same PR just focuses its window — Claude is not relaunched.
 

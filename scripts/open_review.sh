@@ -90,13 +90,41 @@ esac
 # --- Config-driven settings -----------------------------------------------
 session="$(cfg session)"; [ -n "$session" ] || session="Code Review"
 review_cmd="$(cfg review_command)"; [ -n "$review_cmd" ] || review_cmd="/review"
-clone_base="$(cfg clone_base)"; [ -n "$clone_base" ] || clone_base="$HOME/projects"
-clone_base="${clone_base/#\~/$HOME}"
-
 win="${repo}#${number}"
 
-# Working directory: first local clone named after the repo, else $HOME.
-dir="$(find "$clone_base" -maxdepth 3 -type d -name "$repo" 2>/dev/null | grep -v '/\.git' | head -1 || true)"
+# origin_slug <dir> -> lowercase "owner/repo" of the dir's origin remote (any
+# URL form: https, ssh, or an ssh host alias like git@github-work:owner/repo).
+origin_slug() {
+  local u
+  u="$(git -C "$1" remote get-url origin 2>/dev/null)" || return 0
+  u="${u%.git}"; u="${u%/}"
+  printf '%s/%s' "$(basename "$(printf '%s' "${u%/*}" | tr ':' '/')")" "${u##*/}" | tr '[:upper:]' '[:lower:]'
+}
+
+# find_clone -> the local clone to start in. Folders in clone_base are searched
+# in order (up to 3 levels deep); a dir whose origin is owner/repo wins over one
+# that only has the repo's name.
+find_clone() {
+  local want base c first=""
+  want="$(printf '%s/%s' "$owner" "$repo" | tr '[:upper:]' '[:lower:]')"
+  while IFS= read -r base; do
+    base="$(_expand_home "$base")"
+    [ -d "$base" ] || continue
+    while IFS= read -r c; do
+      [ -n "$c" ] || continue
+      [ -e "$c/.git" ] || continue
+      [ -n "$first" ] || first="$c"
+      if [ "$(origin_slug "$c")" = "$want" ]; then printf '%s' "$c"; return 0; fi
+    done <<EOF
+$(find "$base" -maxdepth 3 -type d -name "$repo" -not -path '*/.git/*' -not -path '*/node_modules/*' 2>/dev/null)
+EOF
+  done <<EOF
+$(cfg_list clone_base)
+EOF
+  printf '%s' "$first"
+}
+
+dir="$(find_clone)"
 [ -n "$dir" ] || dir="$HOME"
 
 key="${owner}__${repo}__${number}"
