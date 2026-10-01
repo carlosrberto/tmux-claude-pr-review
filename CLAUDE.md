@@ -14,8 +14,8 @@ status-line segment fed by Claude Code + tmux hooks.
 
 ```sh
 # List PRs (the core data step); reads the config and queries gh:
-./scripts/list_prs.sh
-./scripts/list_prs.sh | column -t -s "$(printf '\t')"
+./scripts/watch_list.sh --repos repos --filter mine   # the picker's "yours" list
+./scripts/watch_list.sh --repos repos --filter all --no-skips   # its "all" list
 
 # Lint (the only gate — no build/test suite):
 shellcheck claude_pr_review.tmux scripts/*.sh
@@ -49,14 +49,10 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
   and `cfg_list <logical-key>` (the repos list, split on commas/whitespace).
   `cfg` maps logical keys to option names, so callers stay option-agnostic.
 
-- **`scripts/list_prs.sh`** — emits one TSV record per PR:
-  `url <TAB> repoWithOwner <TAB> repoName <TAB> number <TAB> title <TAB> author`.
-  Only the repos in `@claude-pr-review-repos` are queried — one `gh search prs`
-  call with a `--repo=` flag per repo (deduped by URL). The `filter` option maps
-  to a gh `@me` qualifier (`involves`/`review-requested`/`author`/`assigned`);
-  `all` adds none. Uses gh's built-in `--jq` — no standalone jq dependency.
-
-- **`scripts/picker.sh`** — projects the record to hidden action fields
+- **`scripts/picker.sh`** — lists PRs via `watch_list.sh --repos repos`, in
+  two modes toggled with `ctrl-a` (re-runs the query): "yours"
+  (`@claude-pr-review-filter`, else the watch filter; watch skips apply) and
+  "all" (`--filter all --no-skips`). Projects each record to hidden action fields
   (`url`, `repoName`, `number`) plus an aligned display block, then `fzf`
   (`--with-nth=4..` hides the action fields, `{1}=url` drives the
   `gh pr view` preview). On selection it `exec`s open_review.sh.
@@ -80,7 +76,8 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
   option.
 - **`scripts/watch_list.sh`** — `owner/name[:filter]` repos grouped by filter;
   one `gh api graphql` search per qualifier (`gh search prs` has no head SHA,
-  needed to detect pushes). Filters skip-authors/labels client-side.
+  needed to detect pushes). Also backs the picker (`--repos`, `--filter`,
+  `--no-skips`). Filters skip-authors/labels client-side.
 - **`scripts/watch.sh`** — `poll` (baseline on first run → queue new PRs → mark
   pushed-to reviewed PRs `updated` → reconcile → `dispatch`), `dispatch` (open
   queued reviews up to `watch-max`), `loop`/`start`/`stop`/`toggle`/`status`.
@@ -121,9 +118,8 @@ auto-review it. Files are only removed by `reconcile` once a PR stops matching.
   unambiguous. Use exact session matches (`-t "=$session"`); the session name has
   a space ("Code Review").
 
-- **`filter = all` is noisy.** Org-wide listing pulls in dependabot/CI/infra
-  PRs. For a real review queue, `review-requested` or `involves` is usually what
-  you want. Worth keeping in mind when changing defaults.
+- **The picker's "all" list is noisy** (release bots, drafts) by design — it
+  skips nothing. That's why the picker opens on "yours".
 
 - **Review env goes on the claude command line, not `new-window -e`.**
   `open_review.sh` types `CLAUDE_CONFIG_DIR=… CLAUDE_PR_REVIEW_KEY=…

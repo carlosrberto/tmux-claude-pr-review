@@ -15,7 +15,25 @@
 #   assigned               you are an assignee
 #   involves               you are involved in any way
 #   mine                   review-requested OR assigned
+#   author                 you opened it
+#
+# Options (the PR picker uses these; watch mode runs it bare):
+#   --repos <key>   repo list: watch_repos (default) or repos (@claude-pr-review-repos)
+#   --filter <f>    use filter <f> for every repo, ignoring :filter suffixes
+#   --no-skips      don't skip drafts / authors / labels
 set -euo pipefail
+
+repos_key="watch_repos"
+force_filter=""
+skips=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repos) repos_key="${2:?--repos needs a key}"; shift 2 ;;
+    --filter) force_filter="${2:?--filter needs a value}"; shift 2 ;;
+    --no-skips) skips=0; shift ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/config.sh
@@ -29,10 +47,11 @@ default_filter="$(cfg watch_filter)"
 # can't parse a case statement inside $(...).)
 repo_pairs() {
   local spec repo filter
-  cfg_list watch_repos | while IFS= read -r spec; do
+  cfg_list "$repos_key" | while IFS= read -r spec; do
     repo="${spec%%:*}"
     filter="${spec#"$repo"}"; filter="${filter#:}"
     [ -n "$filter" ] || filter="$default_filter"
+    [ -z "$force_filter" ] || filter="$force_filter"
     case "$repo" in
       */*) printf '%s\t%s\n' "$filter" "$repo" ;;
       *)   echo "warning: ignoring repo '$spec' - expected owner/name[:filter]" >&2 ;;
@@ -54,13 +73,14 @@ qualifiers() {
     review-requested-team) echo "review-requested:@me" ;;
     assigned)              echo "assignee:@me" ;;
     involves)              echo "involves:@me" ;;
+    author)                echo "author:@me" ;;
     mine)                  echo "user-review-requested:@me"; echo "assignee:@me" ;;
     *) echo "warning: unknown watch filter '$1' - skipping its repos" >&2; return 1 ;;
   esac
 }
 
 base="is:pr is:open archived:false"
-[ "$(cfg watch_skip_drafts)" = "on" ] && base="$base draft:false"
+[ "$skips" -eq 1 ] && [ "$(cfg watch_skip_drafts)" = "on" ] && base="$base draft:false"
 
 # shellcheck disable=SC2016  # $q is a GraphQL variable, not a shell one
 QUERY='query($q: String!) {
@@ -94,8 +114,12 @@ $quals
 EOF
 done
 
-skip_authors="$(cfg_list watch_skip_authors | tr '\n' ' ')"
-skip_labels="$(cfg_list watch_skip_labels | tr '\n' ' ')"
+skip_authors=""
+skip_labels=""
+if [ "$skips" -eq 1 ]; then
+  skip_authors="$(cfg_list watch_skip_authors | tr '\n' ' ')"
+  skip_labels="$(cfg_list watch_skip_labels | tr '\n' ' ')"
+fi
 
 printf '%s' "$results" | awk -F'\t' -v OFS='\t' -v sa="$skip_authors" -v sl="$skip_labels" '
   function norm(s) { s = tolower(s); sub(/^app\//, "", s); sub(/\[bot\]$/, "", s); return s }

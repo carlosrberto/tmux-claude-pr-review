@@ -11,8 +11,9 @@ status-line segment and notifications.
 
 ## How it works
 
-- **List** — `gh search prs` for your configured repos, in an `fzf`
-  popup (`display-popup`).
+- **List** — open PRs in your configured repos (one GitHub GraphQL search per
+  filter), in an `fzf` popup (`display-popup`). It opens on *your* PRs;
+  `ctrl-a` switches to every open PR.
 - **Preview** — `gh pr view` of the highlighted PR, rendered (colors +
   formatted markdown body).
 - **Action** — selecting a PR opens (or re-focuses) a review window and launches
@@ -52,11 +53,11 @@ Everything is set through tmux user options in `~/.tmux.conf`:
 # Repos to list PRs for (owner/name) — ONLY these are shown. Space/comma list.
 set -g @claude-pr-review-repos      'your-org/web-app your-org/api'
 
-# Which PRs, within those repos:
-#   all | involves | review-requested | author | assigned   (default: all)
-set -g @claude-pr-review-filter     'all'
+# Which PRs the picker opens on ("yours"); ctrl-a toggles to all open PRs.
+#   mine | review-requested | review-requested-team | assigned | involves | author
+#   (default: the watch filter, i.e. mine = review requested of you OR assigned)
+set -g @claude-pr-review-filter     ''
 
-set -g @claude-pr-review-limit      '50'           # max PRs fetched
 set -g @claude-pr-review-clone-base '~/projects'   # where local clones live (list, searched in order)
 set -g @claude-pr-review-session    'Code Review'  # tmux session for reviews
 set -g @claude-pr-review-cmd        '/review'      # slash command (PR url appended)
@@ -65,19 +66,21 @@ set -g @claude-pr-review-cmd        '/review'      # slash command (PR url appen
 `@claude-pr-review-repos` is required; the rest have the defaults shown. Reload
 with `tmux source-file ~/.tmux.conf` after changing them.
 
-> **Tip on `filter`.** `all` shows every open PR in the listed repos (including
-> bot PRs like dependabot). For a focused review queue, `review-requested`
-> (awaiting your review) or `involves` (PRs you're part of) is usually better.
+> **"Yours" vs all.** The "yours" list uses the [watch-mode filters and
+> skips](#what-gets-reviewed) (drafts, skip-authors, skip-labels). The "all"
+> list is every open PR, nothing skipped — bots and drafts included.
 
 ## Usage
 
-Press **`prefix + R`** to open the picker.
+Press **`prefix + R`** to open the picker. The header says which list you're
+on (yours, with its filter and count, or all open PRs).
 
 | Key      | Action                                             |
 | -------- | -------------------------------------------------- |
 | `enter`  | Open / focus the review session for it             |
 | `ctrl-r` | Re-review: replace its window with a fresh review  |
 | `ctrl-o` | Open the PR on GitHub (popup stays open)           |
+| `ctrl-a` | Toggle between your PRs and all open PRs           |
 | `esc`    | Close the popup                                    |
 | (type)   | Fuzzy-filter the list                              |
 
@@ -284,11 +287,10 @@ claude_pr_review.tmux        # plugin entry (sourced/executed by TPM)
 scripts/
   config.sh                  # reads @claude-pr-review-* tmux options (sourced)
   state.sh                   # watch-mode state files + status rendering (sourced)
-  list_prs.sh                # gh query -> one TSV line per PR
   picker.sh                  # fzf popup + PR preview
   pr_preview.sh              # rendered gh pr view for fzf previews
   open_review.sh             # ensure session/window + launch claude "/review"
-  watch_list.sh              # GraphQL query -> PRs watch mode should review
+  watch_list.sh              # GraphQL PR query (watch mode + picker)
   watch.sh                   # poller: start/stop/toggle/status/poll/dispatch
   status_picker.sh           # prefix + P popup of tracked PRs
   status_preview.sh          # its preview: live review window capture

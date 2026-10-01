@@ -3,8 +3,7 @@
 # (set in tmux.conf), e.g.:
 #
 #   set -g @claude-pr-review-repos      'your-org/web-app your-org/api'
-#   set -g @claude-pr-review-filter     'review-requested'
-#   set -g @claude-pr-review-limit      '50'
+#   set -g @claude-pr-review-filter     ''      # picker's "yours" list; default: watch filter
 #   set -g @claude-pr-review-clone-base '~/projects ~/work'   # searched in order
 #   set -g @claude-pr-review-session    'Code Review'
 #   set -g @claude-pr-review-cmd        '/review'
@@ -38,7 +37,6 @@ _expand_home() { printf '%s' "${1/#\~/$HOME}"; }
 cfg() {
   case "$1" in
     filter)            _opt @claude-pr-review-filter ;;
-    limit)             _opt @claude-pr-review-limit ;;
     session)           _opt @claude-pr-review-session ;;
     review_command)    _opt @claude-pr-review-cmd ;;
     watch)             _or "$(_opt @claude-pr-review-watch)" off ;;
