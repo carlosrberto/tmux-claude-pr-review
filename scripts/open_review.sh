@@ -175,7 +175,7 @@ if [ "$new" -eq 1 ]; then
   window_id="$(tmux display-message -p -t "$pane" '#{window_id}')"
   tmux set-option -wq -t "$pane" @claude-pr-review-key "$key"
   pr_set "$key" url "$url" repo "$owner/$repo" number "$number" \
-    status reviewing window "$window_id" started "$(now)"
+    status reviewing window "$window_id" clone "$dir" started "$(now)"
   render_status
 fi
 

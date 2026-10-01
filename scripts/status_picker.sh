@@ -7,7 +7,8 @@
 #   enter   jump to the review window (or open a review)
 #   ctrl-r  re-review in a fresh window
 #   ctrl-o  open the PR on GitHub (the popup stays open)
-#   ctrl-x  forget the PR (closes its review window)
+#   ctrl-x  forget the PR (closes its review window, removes its worktree)
+#   ctrl-d  clean up every reviewed PR (asks first) - see cleanup.sh
 set -uo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,7 +48,7 @@ header() {
   fi
   printf 'watch %s · %s%s\n' "$(watch_enabled && echo on || echo off)" "$msg" \
     "$(config_dir_ok || printf ' · no settings.json in %s' "$(cfg claude_config_dir)")"
-  printf 'enter: open   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: forget   esc: close\n'
+  printf 'enter: open   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: forget   ctrl-d: clean up reviewed   esc: close\n'
   printf '⚠ needs you  ✓ done  ⟳ reviewing  ↻ new pushes  ⧗ queued  · seen'
 }
 
@@ -72,6 +73,21 @@ rows() {
     }'
 }
 
+# confirm_cleanup - show what cleanup.sh would remove, run it on "yes".
+confirm_cleanup() {
+  local plan answer
+  plan="$("$DIR/cleanup.sh" --dry-run)"
+  if [ -z "$plan" ]; then
+    tmux display-message "claude-pr-review: no reviewed PRs to clean up"
+    return 0
+  fi
+  answer="$(printf 'no, keep them\nyes, clean up\n' | fzf --layout=reverse --no-info \
+    --header="$(printf 'Close the review windows and remove the review worktrees of:\n\n%s\n ' "$plan")")" || return 0
+  case "$answer" in
+    yes*) tmux display-message "claude-pr-review: $("$DIR/cleanup.sh" | wc -l | tr -d ' ') reviewed PR(s) cleaned up" ;;
+  esac
+}
+
 while :; do
   list="$(rows)"
   if [ -z "$list" ]; then
@@ -86,11 +102,15 @@ while :; do
     --with-nth='3..' \
     --preview="'$DIR/status_preview.sh' {1}" \
     --preview-window="right,${PREVIEW_WIDTH},wrap,follow" \
-    --expect=ctrl-r,ctrl-x \
+    --expect=ctrl-r,ctrl-x,ctrl-d \
     --bind='ctrl-o:execute-silent(gh pr view --web {2} >/dev/null 2>&1 &)' \
     --header="$(header)")" || exit 0
 
   key="$(printf '%s\n' "$sel" | sed -n 1p)"
+  if [ "$key" = "ctrl-d" ]; then
+    confirm_cleanup
+    continue
+  fi
   line="$(printf '%s\n' "$sel" | sed -n 2p)"
   [ -n "$line" ] || exit 0
   pr="$(printf '%s' "$line" | cut -f1)"
@@ -100,7 +120,7 @@ while :; do
   case "$key" in
     ctrl-r) exec "$DIR/open_review.sh" --replace "$url" ;;
     ctrl-x)
-      window_alive "$window" && tmux kill-window -t "$window"
+      "$DIR/cleanup.sh" "$pr" >/dev/null
       pr_rm "$pr"
       render_status
       continue ;;

@@ -92,6 +92,11 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
   @claude-pr-review-status-key` popup over the state files (not gh); preview is
   `capture-pane -e -J` of the review window. Icons are padded apart from labels
   because BSD awk's `length` counts bytes.
+- **`scripts/cleanup.sh`** — closes windows + removes review worktrees of
+  finished reviews (popup `ctrl-d`/`ctrl-x`); local only. Keeps PRs tracked
+  (`done→seen`) so a poll doesn't re-queue them. The clone comes from the `clone`
+  field `open_review.sh` records (fallback: the window's pane path); a worktree is
+  removed only if `git worktree list` has it.
 - **`scripts/install_hooks.sh`** — idempotent jq merge into
   `<claude_config_dir>/settings.json`, with a backup.
 

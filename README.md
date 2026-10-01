@@ -180,7 +180,16 @@ shows watch on/off and the last poll result, which explains a `PR ✗`.
 | `enter`  | Jump to the review window (or open one)   |
 | `ctrl-r` | Re-review in a fresh window               |
 | `ctrl-o` | Open the PR on GitHub (popup stays open)  |
-| `ctrl-x` | Forget the PR and close its review window |
+| `ctrl-x` | Forget the PR: close its window, remove its worktree |
+| `ctrl-d` | Clean up every reviewed PR (asks first)   |
+
+`ctrl-d` closes the review windows and removes the review worktrees (and their
+branches) of every PR whose review finished (`✓`, `·`, `↻`). It's local only, so
+no GitHub calls and no poll. The PRs stay tracked, so the next poll doesn't
+re-review them. Worktrees are found at `<clone>/.claude/worktrees/pr-review-<n>`
+(the `uux-dev` `pr-review` layout; override with `@claude-pr-review-worktree`,
+using `{number}`), and only ones git lists as worktrees of that clone are
+removed. The same cleanup is `scripts/cleanup.sh [--dry-run] [<pr-key>]`.
 
 ### Status segment
 
@@ -205,6 +214,7 @@ set -g @claude-pr-review-status-off     'PR ⏸'
 set -g @claude-pr-review-status-idle    'PR 👁'
 set -g @claude-pr-review-status-error   'PR ✗'
 set -g @claude-pr-review-state-dir      ''      # default: $XDG_STATE_HOME/tmux-claude-pr-review
+set -g @claude-pr-review-worktree       '.claude/worktrees/pr-review-{number}'  # under the clone, for cleanup
 ```
 
 ### Inspecting
@@ -275,6 +285,7 @@ scripts/
   watch.sh                   # poller: start/stop/toggle/status/poll/dispatch
   status_picker.sh           # prefix + P popup of tracked PRs
   status_preview.sh          # its preview: live review window capture
+  cleanup.sh                 # close windows + remove worktrees of finished reviews
   mark.sh                    # review progress from Claude + tmux hooks
   install_hooks.sh           # add/remove the Claude Code hooks
 ```
