@@ -21,6 +21,12 @@
 #   -b, --background   Create the session/window and start Claude, but do NOT
 #                      switch the current client to it (stays out of your way;
 #                      also works with no client attached, e.g. from cron).
+#   -r, --replace      Kill the PR's existing window first, so a fresh review
+#                      is launched (re-review after new pushes).
+#
+# Claude is launched with CLAUDE_CONFIG_DIR (from @claude-pr-review-claude-config-dir),
+# CLAUDE_PR_REVIEW_KEY and CLAUDE_PR_REVIEW_MARK in its environment; the Claude
+# hooks from install_hooks.sh use the last two to report review progress.
 #
 # On success the target is printed as "<session>:<window>" (and the pane id on
 # stderr-free stdout is available via --print-pane).
@@ -31,12 +37,14 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$DIR/config.sh"
 
 background=0
+replace=0
 print_pane=0
 dry_run=0
 args=()
 while [ $# -gt 0 ]; do
   case "$1" in
     -b | --background) background=1; shift ;;
+    -r | --replace) replace=1; shift ;;
     --print-pane) print_pane=1; shift ;;
     -n | --dry-run) dry_run=1; shift ;;
     -h | --help) sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -91,7 +99,13 @@ win="${repo}#${number}"
 dir="$(find "$clone_base" -maxdepth 3 -type d -name "$repo" 2>/dev/null | grep -v '/\.git' | head -1 || true)"
 [ -n "$dir" ] || dir="$HOME"
 
-launch_cmd="claude \"${review_cmd} ${url}\""
+key="${owner}__${repo}__${number}"
+config_dir="$(cfg claude_config_dir)"
+
+# Env goes on the command line, not new-window -e, so it reaches only this
+# claude process (a session's -e env would leak into every later window).
+launch_cmd="$(printf 'CLAUDE_CONFIG_DIR=%q CLAUDE_PR_REVIEW_KEY=%q CLAUDE_PR_REVIEW_MARK=%q claude %q' \
+  "$config_dir" "$key" "$DIR/mark.sh" "${review_cmd} ${url}")"
 
 if [ "$dry_run" -eq 1 ]; then
   printf 'session:    %s\n' "$session"
@@ -103,8 +117,16 @@ if [ "$dry_run" -eq 1 ]; then
   exit 0
 fi
 
+# shellcheck source=scripts/state.sh
+. "$DIR/state.sh"
+
 # --- Ensure the session + window ------------------------------------------
 new=0
+if [ "$replace" -eq 1 ] && tmux has-session -t "=$session" 2>/dev/null; then
+  old="$(tmux list-windows -t "=$session" -F '#{window_name}	#{window_id}' \
+    | awk -F'\t' -v w="$win" '$1 == w { print $2; exit }')"
+  [ -z "$old" ] || tmux kill-window -t "$old"
+fi
 if ! tmux has-session -t "=$session" 2>/dev/null; then
   pane="$(tmux new-session -d -P -F '#{pane_id}' -s "$session" -n "$win" -c "$dir")"
   new=1
@@ -121,6 +143,12 @@ fi
 # Claude's TUI startup; only for a newly created window.
 if [ "$new" -eq 1 ]; then
   tmux send-keys -t "$pane" "$launch_cmd" Enter
+  # Tag the window (tmux hooks use it to mark the review seen) and track it.
+  window_id="$(tmux display-message -p -t "$pane" '#{window_id}')"
+  tmux set-option -wq -t "$pane" @claude-pr-review-key "$key"
+  pr_set "$key" url "$url" repo "$owner/$repo" number "$number" \
+    status reviewing window "$window_id" started "$(now)"
+  render_status
 fi
 
 # Focus the window within its (review) session — harmless to the current view.
