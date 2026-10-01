@@ -88,6 +88,10 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
 - **`scripts/mark.sh`** — status transitions: `done`/`attention` from the Claude
   Stop/Notification hooks (key from `$CLAUDE_PR_REVIEW_KEY`), `seen` from tmux
   hooks. Always exits 0.
+- **`scripts/status_picker.sh`** / **`status_preview.sh`** — `prefix +
+  @claude-pr-review-status-key` popup over the state files (not gh); preview is
+  `capture-pane -e -J` of the review window. Icons are padded apart from labels
+  because BSD awk's `length` counts bytes.
 - **`scripts/install_hooks.sh`** — idempotent jq merge into
   `<claude_config_dir>/settings.json`, with a backup.
 

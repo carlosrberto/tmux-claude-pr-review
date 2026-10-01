@@ -13,6 +13,7 @@
 #
 #   set -g @claude-pr-review-watch              'off'      # initial state; the toggle persists
 #   set -g @claude-pr-review-watch-key          ''         # e.g. 'W' -> prefix + W toggles
+#   set -g @claude-pr-review-status-key         ''         # e.g. 'P' -> prefix + P tracked-PR popup
 #   set -g @claude-pr-review-watch-repos        ''         # owner/name[:filter] ...; defaults to repos
 #   set -g @claude-pr-review-watch-filter       'mine'     # filter for repos without :filter
 #   set -g @claude-pr-review-watch-interval     '300'      # seconds between polls

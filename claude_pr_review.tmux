@@ -27,6 +27,9 @@ tmux bind-key "$KEY" display-popup -E -w "$POPUP_W" -h "$POPUP_H" "$CURRENT_DIR/
 WATCH_KEY="$(tmux show-option -gqv @claude-pr-review-watch-key)"
 [ -z "$WATCH_KEY" ] || tmux bind-key "$WATCH_KEY" run-shell -b "'$CURRENT_DIR/scripts/watch.sh' toggle"
 
+STATUS_KEY="$(tmux show-option -gqv @claude-pr-review-status-key)"
+[ -z "$STATUS_KEY" ] || tmux bind-key "$STATUS_KEY" display-popup -E -w "$POPUP_W" -h "$POPUP_H" "$CURRENT_DIR/scripts/status_picker.sh"
+
 # #{claude_pr_review_status} in status-left/right -> the option the watcher
 # keeps current (read from memory, no per-refresh script).
 # (Pattern and replacement live in variables: bash 3.2 keeps backslashes

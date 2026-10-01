@@ -163,6 +163,23 @@ set -g @claude-pr-review-watch-skip-labels  ''
   window is closed.
 - The toggle is persisted, so it survives a tmux restart.
 
+### Tracked-PR popup
+
+```tmux
+set -g @claude-pr-review-status-key 'P'   # prefix + P (no default)
+```
+
+Lists the PRs watch mode tracks, most urgent first (`⚠ ✓ ⟳ ↻ ⧗ ·`). The
+preview is a live capture of the PR's review window, so you can read Claude's
+verdict without switching (`gh pr view` when it has no window). The header
+shows watch on/off and the last poll result, which explains a `PR ✗`.
+
+| Key      | Action                                    |
+| -------- | ----------------------------------------- |
+| `enter`  | Jump to the review window (or open one)   |
+| `ctrl-r` | Re-review in a fresh window               |
+| `ctrl-x` | Forget the PR and close its review window |
+
 ### Status segment
 
 | Shows        | Means                                         |
@@ -254,6 +271,8 @@ scripts/
   open_review.sh             # ensure session/window + launch claude "/review"
   watch_list.sh              # GraphQL query -> PRs watch mode should review
   watch.sh                   # poller: start/stop/toggle/status/poll/dispatch
+  status_picker.sh           # prefix + P popup of tracked PRs
+  status_preview.sh          # its preview: live review window capture
   mark.sh                    # review progress from Claude + tmux hooks
   install_hooks.sh           # add/remove the Claude Code hooks
 ```
