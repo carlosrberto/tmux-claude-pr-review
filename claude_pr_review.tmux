@@ -9,6 +9,7 @@
 #
 # Configure with:  set -g @claude-pr-review-key 'R'
 #                  set -g @claude-pr-review-watch-key 'W'
+#                  set -g @claude-pr-review-status-key 'P'
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 KEY="$(tmux show-option -gqv @claude-pr-review-key)"

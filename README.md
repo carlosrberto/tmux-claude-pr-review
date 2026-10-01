@@ -3,7 +3,8 @@
 A tmux plugin that pops up a searchable list of open GitHub PRs for the repos
 you care about, and — on selecting one — spins up a Claude Code **code
 review** session for it: a window named `<repo>#<pr>` in your "Code Review"
-session, opened in the repo's local clone, running `claude "/review <pr-url>"`.
+session, opened in the repo's local clone, running
+`claude --name "<repo>#<pr>" "/review <pr-url>"`.
 
 Optionally, [watch mode](#watch-mode-auto-review) does this automatically for
 PRs where your review is requested (or every PR in chosen repos), with a
@@ -85,6 +86,9 @@ on (yours, with its filter and count, or all open PRs).
 | `esc`    | Close the popup                                    |
 | (type)   | Fuzzy-filter the list                              |
 
+When a list is empty you get a fallback row saying so (in "yours", with a
+pointer to `ctrl-a`); keys on it do nothing.
+
 Each PR is prefixed with its [watch mode](#watch-mode-auto-review) status:
 `⟳` reviewing, `✓` done, `↻` new pushes since the review, `⚠` needs you,
 `⧗` queued, `○` pending (not auto-reviewed), `·` seen.
@@ -115,6 +119,16 @@ set -g @claude-pr-review-watch-key         'W'               # prefix + W toggle
 set -g @claude-pr-review-claude-config-dir '~/.claude-work'  # CLAUDE_CONFIG_DIR for review windows
 set -g status-right '#{claude_pr_review_status} | %H:%M'     # the status segment
 ```
+
+> **Theme rewrites `status-right`?** Themes like Dracula build `status-right`
+> themselves, overwriting the placeholder. Append the segment *after* TPM runs
+> instead (the guard keeps a config reload from adding it twice):
+>
+> ```tmux
+> run '~/.tmux/plugins/tpm/tpm'
+> if-shell -F '#{m:*claude-pr-review-status*,#{status-right}}' '' \
+>   "set -ga status-right ' #{@claude-pr-review-status} '"
+> ```
 
 Then install the Claude Code hooks that report review progress (once):
 
@@ -148,6 +162,7 @@ set -g @claude-pr-review-watch-filter 'mine'   # for repos without a :filter
 | `review-requested-team` | ...directly or via one of your teams (broad with CODEOWNERS) |
 | `assigned`              | you're an assignee                            |
 | `involves`              | you're involved in any way                    |
+| `author`                | you opened it                                 |
 | `all`                   | every open PR                                 |
 
 ```tmux
@@ -183,7 +198,8 @@ Lists the PRs watch mode tracks, most urgent first (`⚠ ✓ ⟳ ↻ ⧗ ○ ·`
 pending ones (`○`) it didn't auto-review. The
 preview is a live capture of the PR's review window, so you can read Claude's
 verdict without switching (`gh pr view` when it has no window). The header
-shows watch on/off and the last poll result, which explains a `PR ✗`.
+shows watch on/off and the last poll result, which explains a `PR ✗`. With
+nothing tracked it shows a fallback row (and how to turn watch on if it's off).
 
 | Key      | Action                                    |
 | -------- | ----------------------------------------- |
@@ -206,7 +222,7 @@ removed. The same cleanup is `scripts/cleanup.sh [--dry-run] [<pr-key>]`.
 | Shows        | Means                                         |
 | ------------ | --------------------------------------------- |
 | `PR ⏸`       | watch off (counts still shown if any)         |
-| `PR 👁`      | on, nothing pending                           |
+| `PR 👁`      | on, nothing to count (pending `○` PRs aren't counted) |
 | `PR ⧗1 ⟳2 ✓3 ↻1 ⚠1` | queued, reviewing, done-unseen, new pushes, needs you |
 | `PR ✗`       | last poll failed (e.g. `gh` auth) or bad config dir |
 
