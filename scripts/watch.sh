@@ -12,8 +12,9 @@
 #   watch.sh loop       the poller itself (what start runs)
 #
 # PRs already waiting when watch is first enabled (or toggled back on) are
-# recorded as "baseline" and not auto-reviewed. A new push to a reviewed PR
-# marks it "updated"; it is never re-reviewed automatically.
+# recorded as "baseline" and not auto-reviewed; a notification says how many,
+# and the status popup lists them (○) to start by hand. A new push to a
+# reviewed PR marks it "updated"; it is never re-reviewed automatically.
 set -uo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -81,11 +82,24 @@ EOF
 
   if [ ! -f "$STATE_DIR/baselined" ]; then
     touch "$STATE_DIR/baselined"
-    log "baseline: recorded $(printf '%s' "$records" | wc -w | tr -d ' ') already-pending PRs"
+    report_baseline
   fi
 
   reconcile "$records"
   dispatch
+}
+
+# report_baseline - say how many pending PRs were left for you to start by hand.
+report_baseline() {
+  local key n=0 where status_key
+  for key in $(pr_keys); do
+    [ "$(pr_get "$key" status)" = "baseline" ] && n=$((n + 1))
+  done
+  log "baseline: $n pending PRs not auto-reviewed"
+  [ "$n" -gt 0 ] || return 0
+  status_key="$(_opt @claude-pr-review-status-key)"
+  where="${status_key:+ - prefix + $status_key to see}"
+  notify "$n pending PR$([ "$n" -eq 1 ] || echo s) not auto-reviewed$where"
 }
 
 # reconcile "<space-separated keys still matching>" - forget PRs that no longer

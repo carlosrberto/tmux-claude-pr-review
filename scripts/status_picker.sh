@@ -7,7 +7,8 @@
 #   enter   jump to the review window (or open a review)
 #   ctrl-r  re-review in a fresh window
 #   ctrl-o  open the PR on GitHub (the popup stays open)
-#   ctrl-x  forget the PR (closes its review window, removes its worktree)
+#   ctrl-x  dismiss the PR: close its window, remove its worktree, hide it
+#           (it is not auto-reviewed again while it stays open)
 #   ctrl-d  clean up every reviewed PR (asks first) - see cleanup.sh
 set -uo pipefail
 
@@ -20,11 +21,12 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREVIEW_WIDTH="$(tmux show-option -gqv @claude-pr-review-preview-width)"
 [ -n "$PREVIEW_WIDTH" ] || PREVIEW_WIDTH="60%"
 
-# rank <status> -> sort order: needs you, unread, running, new pushes, waiting, rest.
+# rank <status> -> sort order: needs you, unread, running, new pushes, waiting,
+# pending (not auto-reviewed), seen.
 rank() {
   case "$1" in
     attention) echo 1 ;; done) echo 2 ;; reviewing) echo 3 ;; updated) echo 4 ;;
-    queued) echo 5 ;; seen) echo 6 ;; *) echo 7 ;;
+    queued) echo 5 ;; pending) echo 6 ;; seen) echo 7 ;; *) echo 8 ;;
   esac
 }
 
@@ -32,7 +34,7 @@ rank() {
 mark() {
   case "$1" in
     queued) echo "⧗" ;; reviewing) echo "⟳" ;; attention) echo "⚠" ;;
-    done) echo "✓" ;; updated) echo "↻" ;; seen) echo "·" ;; *) echo " " ;;
+    done) echo "✓" ;; updated) echo "↻" ;; seen) echo "·" ;; pending) echo "○" ;; *) echo " " ;;
   esac
 }
 
@@ -48,8 +50,8 @@ header() {
   fi
   printf 'watch %s · %s%s\n' "$(watch_enabled && echo on || echo off)" "$msg" \
     "$(config_dir_ok || printf ' · no settings.json in %s' "$(cfg claude_config_dir)")"
-  printf 'enter: open   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: forget   ctrl-d: clean up reviewed   esc: close\n'
-  printf '⚠ needs you  ✓ done  ⟳ reviewing  ↻ new pushes  ⧗ queued  · seen'
+  printf 'enter: open/review   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: dismiss   ctrl-d: clean up reviewed   esc: close\n'
+  printf '⚠ needs you  ✓ done  ⟳ reviewing  ↻ new pushes  ⧗ queued  ○ pending (start with enter)  · seen'
 }
 
 # Hidden fields: 1=key 2=url; shown: 3="mark repo#num  status  title" (aligned).
@@ -57,7 +59,8 @@ rows() {
   local k s label
   for k in $(pr_keys); do
     s="$(pr_get "$k" status)"
-    [ "$s" = "baseline" ] && continue
+    [ "$s" = "dismissed" ] && continue
+    case "$s" in baseline) s="pending" ;; esac
     label="$(pr_get "$k" repo)#$(pr_get "$k" number)"; label="${label#*/}"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$(rank "$s")" "$k" "$(pr_get "$k" url)" \
       "$(mark "$s")" "$label" "$s" "$(pr_get "$k" title)"
@@ -120,8 +123,9 @@ while :; do
   case "$key" in
     ctrl-r) exec "$DIR/open_review.sh" --replace "$url" ;;
     ctrl-x)
+      # Not pr_rm: a still-matching PR would come back as new and be reviewed.
       "$DIR/cleanup.sh" "$pr" >/dev/null
-      pr_rm "$pr"
+      pr_set "$pr" status dismissed
       render_status
       continue ;;
     *)

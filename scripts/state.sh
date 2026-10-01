@@ -12,7 +12,8 @@
 #     watch.log      poller output
 #     prs/<owner>__<repo>__<number>   key=value lines, one file per PR
 #
-# PR status: baseline | queued | reviewing | attention | done | seen | updated
+# PR status: baseline | queued | reviewing | attention | done | seen | updated |
+#            dismissed (hidden + never auto-reviewed until the PR stops matching)
 # Several processes write PR files (poller, Claude hooks, tmux hooks, picker),
 # so every write is a locked read-modify-write ending in an atomic mv.
 

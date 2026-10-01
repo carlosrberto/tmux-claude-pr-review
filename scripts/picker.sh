@@ -41,7 +41,7 @@ export PR_STATUSES
 display="$(printf '%s\n' "$list" | awk -F'\t' '
 BEGIN {
   mark["queued"] = "⧗"; mark["reviewing"] = "⟳"; mark["attention"] = "⚠"
-  mark["done"] = "✓"; mark["updated"] = "↻"; mark["seen"] = "·"
+  mark["done"] = "✓"; mark["updated"] = "↻"; mark["seen"] = "·"; mark["baseline"] = "○"
   n = split(ENVIRON["PR_STATUSES"], lines, "\n")
   for (i = 1; i <= n; i++) { split(lines[i], kv, "\t"); status[kv[1]] = kv[2] }
 }
@@ -71,7 +71,7 @@ sel="$(printf '%s\n' "$display" | fzf \
   --expect=ctrl-r \
   --bind='ctrl-o:execute-silent(gh pr view --web {1} >/dev/null 2>&1 &)' \
   --header='enter: open review   ctrl-r: re-review   ctrl-o: open on GitHub   esc: cancel
-⟳ reviewing  ✓ done  ↻ new pushes  ⚠ needs you  ⧗ queued  · seen')" || exit 0
+⟳ reviewing  ✓ done  ↻ new pushes  ⚠ needs you  ⧗ queued  ○ pending  · seen')" || exit 0
 
 key="$(printf '%s\n' "$sel" | sed -n 1p)"
 url="$(printf '%s\n' "$sel" | sed -n 2p | cut -f1)"

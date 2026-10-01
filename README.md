@@ -82,7 +82,7 @@ Press **`prefix + R`** to open the picker.
 
 Each PR is prefixed with its [watch mode](#watch-mode-auto-review) status:
 `⟳` reviewing, `✓` done, `↻` new pushes since the review, `⚠` needs you,
-`⧗` queued, `·` seen.
+`⧗` queued, `○` pending (not auto-reviewed), `·` seen.
 
 On `enter`:
 
@@ -152,8 +152,11 @@ set -g @claude-pr-review-watch-skip-labels  ''
 
 ### Behaviour
 
-- **Baseline.** PRs already waiting when watch is first enabled (or toggled
-  back on) are recorded, not reviewed — no burst of windows.
+- **Baseline.** PRs already waiting when watch is turned on (including ones
+  that arrived while it was off) are recorded as pending (`○`), not reviewed —
+  no burst of windows. A message says how many; they're listed in the
+  tracked-PR popup, where `enter` starts a review. A tmux restart with watch on
+  doesn't re-baseline, so PRs that arrived while tmux was down are reviewed.
 - **At most `@claude-pr-review-watch-max` (2) reviews at once**; the rest wait
   as queued and start as soon as a review finishes.
 - **New pushes** to a reviewed PR mark it `↻` — never re-reviewed
@@ -170,17 +173,18 @@ set -g @claude-pr-review-watch-skip-labels  ''
 set -g @claude-pr-review-status-key 'P'   # prefix + P (no default)
 ```
 
-Lists the PRs watch mode tracks, most urgent first (`⚠ ✓ ⟳ ↻ ⧗ ·`). The
+Lists the PRs watch mode tracks, most urgent first (`⚠ ✓ ⟳ ↻ ⧗ ○ ·`), including
+pending ones (`○`) it didn't auto-review. The
 preview is a live capture of the PR's review window, so you can read Claude's
 verdict without switching (`gh pr view` when it has no window). The header
 shows watch on/off and the last poll result, which explains a `PR ✗`.
 
 | Key      | Action                                    |
 | -------- | ----------------------------------------- |
-| `enter`  | Jump to the review window (or open one)   |
+| `enter`  | Jump to the review window (or start a review) |
 | `ctrl-r` | Re-review in a fresh window               |
 | `ctrl-o` | Open the PR on GitHub (popup stays open)  |
-| `ctrl-x` | Forget the PR: close its window, remove its worktree |
+| `ctrl-x` | Dismiss: close its window, remove its worktree, hide it (never auto-reviewed while it stays open) |
 | `ctrl-d` | Clean up every reviewed PR (asks first)   |
 
 `ctrl-d` closes the review windows and removes the review worktrees (and their

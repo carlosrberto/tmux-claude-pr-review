@@ -100,9 +100,12 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
 - **`scripts/install_hooks.sh`** — idempotent jq merge into
   `<claude_config_dir>/settings.json`, with a backup.
 
-Status flow: `baseline` | `queued → reviewing ⇄ attention → done → seen`, and
-`done|seen → updated` on a new push (re-review is manual: picker `ctrl-r` =
-`open_review.sh --replace`).
+Status flow: `baseline` (shown as ○ pending; `enter` in the popup starts it) |
+`queued → reviewing ⇄ attention → done → seen`, and `done|seen → updated` on a
+new push (re-review is manual: picker `ctrl-r` = `open_review.sh --replace`).
+`dismissed` (popup `ctrl-x`) hides a PR without deleting its file — **never
+`pr_rm` a still-matching PR**: the next poll would take it for a new request and
+auto-review it. Files are only removed by `reconcile` once a PR stops matching.
 
 ### Things that are easy to get wrong
 
