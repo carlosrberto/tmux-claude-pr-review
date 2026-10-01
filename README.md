@@ -13,7 +13,8 @@ status-line segment and notifications.
 
 - **List** — `gh search prs` for your configured repos, in an `fzf`
   popup (`display-popup`).
-- **Preview** — `gh pr view` of the highlighted PR.
+- **Preview** — `gh pr view` of the highlighted PR, rendered (colors +
+  formatted markdown body).
 - **Action** — selecting a PR opens (or re-focuses) a review window and launches
   Claude with your review command.
 - **Watch** — a background poller opens review windows for new matching PRs;
@@ -270,9 +271,10 @@ Behaviour:
 
 ```tmux
 set -g @claude-pr-review-key           'R'    # prefix key (default: R)
-set -g @claude-pr-review-width         '60%'  # popup width
+set -g @claude-pr-review-width         '85%'  # popup width (both popups)
 set -g @claude-pr-review-height        '85%'  # popup height
 set -g @claude-pr-review-preview-width '60%'  # preview share of the popup
+set -g @claude-pr-review-preview-style 'dark' # PR markdown style: dark, light, dracula, tokyo-night, pink, notty
 ```
 
 ## Layout
@@ -283,7 +285,8 @@ scripts/
   config.sh                  # reads @claude-pr-review-* tmux options (sourced)
   state.sh                   # watch-mode state files + status rendering (sourced)
   list_prs.sh                # gh query -> one TSV line per PR
-  picker.sh                  # fzf popup + gh pr view preview
+  picker.sh                  # fzf popup + PR preview
+  pr_preview.sh              # rendered gh pr view for fzf previews
   open_review.sh             # ensure session/window + launch claude "/review"
   watch_list.sh              # GraphQL query -> PRs watch mode should review
   watch.sh                   # poller: start/stop/toggle/status/poll/dispatch

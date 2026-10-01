@@ -15,7 +15,7 @@ KEY="$(tmux show-option -gqv @claude-pr-review-key)"
 [ -n "$KEY" ] || KEY="R"
 
 POPUP_W="$(tmux show-option -gqv @claude-pr-review-width)"
-[ -n "$POPUP_W" ] || POPUP_W="60%"
+[ -n "$POPUP_W" ] || POPUP_W="85%"
 
 POPUP_H="$(tmux show-option -gqv @claude-pr-review-height)"
 [ -n "$POPUP_H" ] || POPUP_H="85%"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # fzf preview for status_picker.sh: the bottom of the PR's review window (live,
-# with colors), or `gh pr view` when it has no open window.
+# with colors), or the rendered PR (pr_preview.sh) when it has no open window.
 #
 #   status_preview.sh <pr-key>
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,5 +20,5 @@ if window_alive "$window"; then
     | tail -n "${FZF_PREVIEW_LINES:-40}"
 else
   printf '(no review window open)\n\n'
-  gh pr view "$(pr_get "$key" url)" 2>&1
+  "$DIR/pr_preview.sh" "$(pr_get "$key" url)"
 fi
