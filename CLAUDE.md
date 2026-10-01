@@ -121,6 +121,10 @@ auto-review it. Files are only removed by `reconcile` once a PR stops matching.
 - **The picker's "all" list is noisy** (release bots, drafts) by design — it
   skips nothing. That's why the picker opens on "yours".
 
+- **Every word of the typed launch line is single-quoted (`sq`), not `printf
+  %q`.** `%q` leaves a mid-word `#` bare (`--name web-app#229`), and zsh with
+  `extendedglob` reads that as a glob: "no matches found".
+
 - **Review env goes on the claude command line, not `new-window -e`.**
   `open_review.sh` types `CLAUDE_CONFIG_DIR=… CLAUDE_PR_REVIEW_KEY=…
   CLAUDE_PR_REVIEW_MARK=… claude …`. A `new-session -e` would set the

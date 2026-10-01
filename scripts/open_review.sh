@@ -132,8 +132,20 @@ config_dir="$(cfg claude_config_dir)"
 
 # Env goes on the command line, not new-window -e, so it reaches only this
 # claude process (a session's -e env would leak into every later window).
-launch_cmd="$(printf 'CLAUDE_CONFIG_DIR=%q CLAUDE_PR_REVIEW_KEY=%q CLAUDE_PR_REVIEW_MARK=%q claude %q' \
-  "$config_dir" "$key" "$DIR/mark.sh" "${review_cmd} ${url}")"
+# Claude session display name (prompt box, /resume picker, terminal title);
+# @claude-pr-review-claude-name with {repo} {number} {owner}, default = window name.
+name_fmt="$(_or "$(_opt @claude-pr-review-claude-name)" '{repo}#{number}')"
+session_name="${name_fmt//\{repo\}/$repo}"
+session_name="${session_name//\{number\}/$number}"
+session_name="${session_name//\{owner\}/$owner}"
+
+# sq <word> -> single-quoted for the pane's shell. Not printf %q: it leaves a
+# mid-word "#" bare, which zsh with extendedglob treats as a glob operator.
+sq() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+
+launch_cmd="CLAUDE_CONFIG_DIR=$(sq "$config_dir") CLAUDE_PR_REVIEW_KEY=$(sq "$key")"
+launch_cmd="$launch_cmd CLAUDE_PR_REVIEW_MARK=$(sq "$DIR/mark.sh")"
+launch_cmd="$launch_cmd claude --name $(sq "$session_name") $(sq "${review_cmd} ${url}")"
 
 if [ "$dry_run" -eq 1 ]; then
   printf 'session:    %s\n' "$session"
