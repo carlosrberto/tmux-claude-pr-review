@@ -76,6 +76,7 @@ Press **`prefix + R`** to open the picker.
 | -------- | -------------------------------------------------- |
 | `enter`  | Open / focus the review session for it             |
 | `ctrl-r` | Re-review: replace its window with a fresh review  |
+| `ctrl-o` | Open the PR on GitHub (popup stays open)           |
 | `esc`    | Close the popup                                    |
 | (type)   | Fuzzy-filter the list                              |
 
@@ -178,6 +179,7 @@ shows watch on/off and the last poll result, which explains a `PR ✗`.
 | -------- | ----------------------------------------- |
 | `enter`  | Jump to the review window (or open one)   |
 | `ctrl-r` | Re-review in a fresh window               |
+| `ctrl-o` | Open the PR on GitHub (popup stays open)  |
 | `ctrl-x` | Forget the PR and close its review window |
 
 ### Status segment

@@ -3,7 +3,8 @@
 # fzf picker (run inside a tmux display-popup). Lists open PRs from
 # list_prs.sh, previews the highlighted PR with `gh pr view`, and on selection
 # hands off to open_review.sh to spin up the review session. Each PR is marked
-# with its watch-mode status; ctrl-r re-reviews it in a fresh window.
+# with its watch-mode status; ctrl-r re-reviews it in a fresh window, ctrl-o
+# opens it on GitHub (the popup stays open).
 set -uo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -68,7 +69,8 @@ sel="$(printf '%s\n' "$display" | fzf \
   --preview='gh pr view {1}' \
   --preview-window="right,${PREVIEW_WIDTH},wrap" \
   --expect=ctrl-r \
-  --header='enter: open review   ctrl-r: re-review   esc: cancel
+  --bind='ctrl-o:execute-silent(gh pr view --web {1} >/dev/null 2>&1 &)' \
+  --header='enter: open review   ctrl-r: re-review   ctrl-o: open on GitHub   esc: cancel
 ⟳ reviewing  ✓ done  ↻ new pushes  ⚠ needs you  ⧗ queued  · seen')" || exit 0
 
 key="$(printf '%s\n' "$sel" | sed -n 1p)"

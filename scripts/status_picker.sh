@@ -6,6 +6,7 @@
 #
 #   enter   jump to the review window (or open a review)
 #   ctrl-r  re-review in a fresh window
+#   ctrl-o  open the PR on GitHub (the popup stays open)
 #   ctrl-x  forget the PR (closes its review window)
 set -uo pipefail
 
@@ -46,7 +47,7 @@ header() {
   fi
   printf 'watch %s · %s%s\n' "$(watch_enabled && echo on || echo off)" "$msg" \
     "$(config_dir_ok || printf ' · no settings.json in %s' "$(cfg claude_config_dir)")"
-  printf 'enter: open   ctrl-r: re-review   ctrl-x: forget   esc: close\n'
+  printf 'enter: open   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: forget   esc: close\n'
   printf '⚠ needs you  ✓ done  ⟳ reviewing  ↻ new pushes  ⧗ queued  · seen'
 }
 
@@ -86,6 +87,7 @@ while :; do
     --preview="'$DIR/status_preview.sh' {1}" \
     --preview-window="right,${PREVIEW_WIDTH},wrap,follow" \
     --expect=ctrl-r,ctrl-x \
+    --bind='ctrl-o:execute-silent(gh pr view --web {2} >/dev/null 2>&1 &)' \
     --header="$(header)")" || exit 0
 
   key="$(printf '%s\n' "$sel" | sed -n 1p)"
