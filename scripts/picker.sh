@@ -51,7 +51,15 @@ export PR_STATUSES
 # Project to a hidden url (field 1, drives the preview and the action) plus an
 # aligned display block "mark repoName#number  @author  title" (field 2, shown).
 render() {
-  [ -n "$list" ] || return 0
+  # Fallback row (empty hidden url): enter/ctrl-r on it do nothing.
+  if [ -z "$list" ]; then
+    if [ "$mode" = "mine" ]; then
+      printf '\t  No open PRs waiting on you (%s) in these repos - ctrl-a shows all open PRs\n' "$mine_filter"
+    else
+      printf '\t  No open PRs in these repos (%s)\n' "$(cfg_list repos | tr '\n' ' ' | sed 's/ $//')"
+    fi
+    return 0
+  fi
   printf '%s\n' "$list" | awk -F'\t' '
 BEGIN {
   mark["queued"] = "⧗"; mark["reviewing"] = "⟳"; mark["attention"] = "⚠"
@@ -92,7 +100,7 @@ while :; do
     --preview="'$DIR/pr_preview.sh' {1}" \
     --preview-window="right,${PREVIEW_WIDTH},wrap" \
     --expect=ctrl-r,ctrl-a \
-    --bind='ctrl-o:execute-silent(gh pr view --web {1} >/dev/null 2>&1 &)' \
+    --bind='ctrl-o:execute-silent([ -n {1} ] && gh pr view --web {1} >/dev/null 2>&1 &)' \
     --header="$shown
 enter: open review   ctrl-r: re-review   ctrl-o: open on GitHub   esc: cancel
 ⟳ reviewing  ✓ done  ↻ new pushes  ⚠ needs you  ⧗ queued  ○ pending  · seen")" || exit 0
@@ -103,7 +111,7 @@ enter: open review   ctrl-r: re-review   ctrl-o: open on GitHub   esc: cancel
     continue
   fi
   url="$(printf '%s\n' "$sel" | sed -n 2p | cut -f1)"
-  [ -n "$url" ] || exit 0
+  [ -n "$url" ] || continue   # the fallback row
 
   if [ "$key" = "ctrl-r" ]; then
     exec "$DIR/open_review.sh" --replace "$url"

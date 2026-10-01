@@ -11,7 +11,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$DIR/state.sh"
 
 key="${1:-}"
-pr_exists "$key" || exit 0
+pr_exists "$key" || { printf '\n  Nothing to preview.\n'; exit 0; }
 window="$(pr_get "$key" window)"
 
 if window_alive "$window"; then

@@ -93,9 +93,13 @@ confirm_cleanup() {
 
 while :; do
   list="$(rows)"
+  # Fallback row (empty hidden key/url): actions on it do nothing.
   if [ -z "$list" ]; then
-    tmux display-message "claude-pr-review: no tracked PRs$(watch_enabled || echo ' (watch is off)')"
-    exit 0
+    if watch_enabled; then
+      list="$(printf '\t\t  No tracked PRs - new review requests show up here as watch picks them up')"
+    else
+      list="$(printf '\t\t  No tracked PRs - watch is off%s' "$(_opt @claude-pr-review-watch-key | sed 's/^./ (prefix + & turns it on)/')")"
+    fi
   fi
 
   sel="$(printf '%s\n' "$list" | fzf \
@@ -106,7 +110,7 @@ while :; do
     --preview="'$DIR/status_preview.sh' {1}" \
     --preview-window="right,${PREVIEW_WIDTH},wrap,follow" \
     --expect=ctrl-r,ctrl-x,ctrl-d \
-    --bind='ctrl-o:execute-silent(gh pr view --web {2} >/dev/null 2>&1 &)' \
+    --bind='ctrl-o:execute-silent([ -n {2} ] && gh pr view --web {2} >/dev/null 2>&1 &)' \
     --header="$(header)")" || exit 0
 
   key="$(printf '%s\n' "$sel" | sed -n 1p)"
@@ -117,6 +121,7 @@ while :; do
   line="$(printf '%s\n' "$sel" | sed -n 2p)"
   [ -n "$line" ] || exit 0
   pr="$(printf '%s' "$line" | cut -f1)"
+  [ -n "$pr" ] || continue   # the fallback row
   url="$(printf '%s' "$line" | cut -f2)"
   window="$(pr_get "$pr" window)"
 

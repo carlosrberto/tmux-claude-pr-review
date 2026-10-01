@@ -11,6 +11,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/config.sh
 . "$DIR/config.sh"
 
+[ -n "${1:-}" ] || { printf '\n  Nothing to preview.\n'; exit 0; }
+
 style="$(_or "$(_opt @claude-pr-review-preview-style)" dark)"
 
 GH_FORCE_TTY="${FZF_PREVIEW_COLUMNS:-100}" GLAMOUR_STYLE="$style" GH_PAGER=cat \
