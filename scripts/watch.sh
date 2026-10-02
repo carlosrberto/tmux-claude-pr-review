@@ -175,15 +175,42 @@ loop() {
   trap 'exit 0' TERM INT HUP
   log "watch started (pid $$)"
 
+  local fails=0 delay
   while tmux list-sessions >/dev/null 2>&1 && watch_enabled; do
-    poll
     interval="$(cfg watch_interval)"
     case "$interval" in '' | *[!0-9]*) interval=300 ;; esac
+    if poll; then
+      [ "$fails" -eq 0 ] || log "poll ok again after $fails failed"
+      fails=0; delay="$interval"
+    else
+      # Back off from 30s (30, 60, 120, ...) up to the normal interval, so the
+      # watch catches up soon after the network returns (e.g. after a wake).
+      fails=$((fails + 1))
+      delay=$((30 << (fails > 5 ? 5 : fails - 1)))
+      [ "$delay" -le "$interval" ] || delay="$interval"
+      log "retrying in ${delay}s"
+    fi
     rotate_log
-    sleep "$interval" & sleeper=$!
-    wait "$sleeper"; sleeper=""
+    wait_until $(( $(now) + delay ))
   done
   log "watch stopped"
+}
+
+# wait_until <epoch> - sleep until a wall-clock time, in short steps. A plain
+# `sleep N` stops counting while the machine sleeps, so a poll due during
+# standby would run up to N seconds after waking; checking the wall clock makes
+# it run within one step of waking.
+wait_until() {
+  local step=15 t before
+  while :; do
+    t=$(( $1 - $(now) ))
+    [ "$t" -gt 0 ] || return 0
+    [ "$t" -le "$step" ] || t="$step"
+    before="$(now)"
+    sleep "$t" & sleeper=$!
+    wait "$sleeper"; sleeper=""
+    [ $(( $(now) - before )) -le $(( t + 60 )) ] || log "resumed after $(( ($(now) - before) / 60 ))m asleep"
+  done
 }
 
 rotate_log() {

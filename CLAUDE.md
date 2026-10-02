@@ -136,6 +136,11 @@ auto-review it. Files are only removed by `reconcile` once a PR stops matching.
   `$CLAUDE_PR_REVIEW_MARK`, so they're no-ops in ordinary sessions and survive
   the plugin moving.
 
+- **Don't `sleep <interval>` in the poller.** macOS pauses that timer in
+  standby, so a due poll would run up to a full interval after waking.
+  `wait_until` sleeps in 15s steps against the wall clock. Failed polls back off
+  30s→1m→2m→4m→interval. Successful polls aren't logged; check `last-poll`.
+
 - **`tmux display-message -t <gone-window>` exits 0.** Check a window exists
   with `list-windows -a -F '#{window_id}' | grep -qx` (`window_alive`).
 

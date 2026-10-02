@@ -187,6 +187,12 @@ set -g @claude-pr-review-watch-skip-labels  ''
 - Merged/closed PRs, or ones no longer requested, are forgotten once their
   window is closed.
 - The toggle is persisted, so it survives a tmux restart.
+- **Sleep / offline.** A poll that falls due while the machine sleeps runs
+  within ~15s of waking (the wait follows the wall clock, not a timer that
+  pauses in standby). A failed poll (no network, `gh` auth) is retried after
+  30s, 1m, 2m, 4m, then every interval, so the watch catches up soon after the
+  network returns. Requests that come *and go* entirely while you're offline
+  (requested, approved and merged in between) can't be caught.
 
 ### Tracked-PR popup
 
