@@ -41,14 +41,14 @@ case "$event:$status" in
       pr_set "$key" status seen
     else
       pr_set "$key" status "done"
-      notify "✓ review ready: $label${title:+ - $title}" macos
+      notify "done" "✓ review ready: $label${title:+ - $title}" "$key"
     fi
     # A slot freed up: start the next queued review now, not at the next poll.
     "$DIR/watch.sh" dispatch >/dev/null 2>&1 &
     ;;
   attention:reviewing)
     pr_set "$key" status attention
-    being_viewed || notify "⚠ review needs attention: $label" macos
+    being_viewed || notify attention "⚠ review needs attention: $label" "$key"
     ;;
   seen:done)
     # The tmux hooks also fire for background select-window calls.

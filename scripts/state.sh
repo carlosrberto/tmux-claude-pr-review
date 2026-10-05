@@ -125,22 +125,7 @@ render_status() {
   tmux refresh-client -S 2>/dev/null || true
 }
 
-# notify <message> [macos] - tmux message, plus a macOS notification when asked
-# and enabled via @claude-pr-review-notify.
-notify() {
-  local channels
-  channels=" $(cfg notify) "
-  case "$channels" in
-    *" tmux "*) tmux display-message "claude-pr-review: $1" 2>/dev/null || true ;;
-  esac
-  if [ "${2:-}" = "macos" ]; then
-    case "$channels" in
-      *" macos "*)
-        command -v osascript >/dev/null 2>&1 &&
-          osascript -e "display notification \"${1//\"/\\\"}\" with title \"Claude PR review\"" >/dev/null 2>&1 || true ;;
-    esac
-  fi
-  return 0
-}
+# shellcheck source=scripts/notify.sh
+. "$(dirname "${BASH_SOURCE[0]}")/notify.sh"
 
 log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$STATE_DIR/watch.log"; }

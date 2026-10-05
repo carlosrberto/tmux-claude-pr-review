@@ -99,7 +99,7 @@ report_baseline() {
   [ "$n" -gt 0 ] || return 0
   status_key="$(_opt @claude-pr-review-status-key)"
   where="${status_key:+ - prefix + $status_key to see}"
-  notify "$n pending PR$([ "$n" -eq 1 ] || echo s) not auto-reviewed$where"
+  notify baseline "$n pending PR$([ "$n" -eq 1 ] || echo s) not auto-reviewed$where"
 }
 
 # reconcile "<space-separated keys still matching>" - forget PRs that no longer
@@ -150,7 +150,7 @@ dispatch() {
       pr_set "$key" reviewed_sha "$(pr_get "$key" head_sha)"
       active=$((active + 1))
       log "reviewing $label"
-      notify "🔍 reviewing $label${title:+ - $title}"
+      notify reviewing "🔍 reviewing $label${title:+ - $title}" "$key"
     else
       pr_set "$key" status seen
       log "failed to open a review for $label - skipped"
@@ -177,6 +177,7 @@ loop() {
 
   local fails=0 delay
   while tmux list-sessions >/dev/null 2>&1 && watch_enabled; do
+    load_cfg   # pick up tmux.conf changes without restarting the poller
     interval="$(cfg watch_interval)"
     case "$interval" in '' | *[!0-9]*) interval=300 ;; esac
     if poll; then
@@ -236,7 +237,7 @@ start() {
   stop
   if watch_enabled; then
     if ! config_dir_ok; then
-      notify "watch not started: no settings.json in $(cfg claude_config_dir) - set @claude-pr-review-claude-config-dir" macos
+      notify error "watch not started: no settings.json in $(cfg claude_config_dir) - set @claude-pr-review-claude-config-dir"
       log "start refused: no settings.json in $(cfg claude_config_dir)"
     else
       nohup "$DIR/watch.sh" loop >>"$STATE_DIR/watch.log" 2>&1 </dev/null &
@@ -249,13 +250,13 @@ toggle() {
   if watch_enabled; then
     echo off > "$STATE_DIR/enabled"
     stop
-    notify "watch off"
+    notify watch "watch off"
   else
     echo on > "$STATE_DIR/enabled"
     # PRs already pending now are recorded, not reviewed in a burst.
     rm -f "$STATE_DIR/baselined"
     start
-    config_dir_ok && notify "watch on"
+    config_dir_ok && notify watch "watch on"
   fi
   render_status
 }
