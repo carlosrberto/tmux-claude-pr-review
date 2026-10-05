@@ -10,6 +10,7 @@
 #   ctrl-x  dismiss the PR: close its window, remove its worktree, hide it
 #           (it is not auto-reviewed again while it stays open)
 #   ctrl-d  clean up every reviewed PR (asks first) - see cleanup.sh
+#   ctrl-g  diagnose: the doctor.sh report (q returns to the list)
 set -uo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -48,9 +49,13 @@ header() {
     t="${poll%% *}"; ago=$(( ($(now) - t) / 60 ))
     msg="last poll ${ago}m ago: ${poll#* }"
   fi
-  printf 'watch %s · %s%s\n' "$(watch_enabled && echo on || echo off)" "$msg" \
-    "$(config_dir_ok || printf ' · no settings.json in %s' "$(cfg claude_config_dir)")"
-  printf 'enter: open/review   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: dismiss   ctrl-d: clean up reviewed   esc: close\n'
+  local problem=""
+  case "$poll" in *" error"*) problem=1 ;; esac
+  config_dir_ok || problem=1
+  printf 'watch %s · %s%s%s\n' "$(watch_enabled && echo on || echo off)" "$msg" \
+    "$(config_dir_ok || printf ' · no settings.json in %s' "$(cfg claude_config_dir)")" \
+    "${problem:+ · ctrl-g: diagnose}"
+  printf 'enter: open/review   ctrl-r: re-review   ctrl-o: GitHub   ctrl-x: dismiss   ctrl-d: clean up reviewed   ctrl-g: doctor   esc: close\n'
   printf '⚠ needs you  ✓ done  ⟳ reviewing  ↻ new pushes  ⧗ queued  ○ pending (start with enter)  · seen'
 }
 
@@ -109,13 +114,17 @@ while :; do
     --with-nth='3..' \
     --preview="'$DIR/status_preview.sh' {1}" \
     --preview-window="right,${PREVIEW_WIDTH},wrap,follow" \
-    --expect=ctrl-r,ctrl-x,ctrl-d \
+    --expect=ctrl-r,ctrl-x,ctrl-d,ctrl-g \
     --bind='ctrl-o:execute-silent([ -n {2} ] && gh pr view --web {2} >/dev/null 2>&1 &)' \
     --header="$(header)")" || exit 0
 
   key="$(printf '%s\n' "$sel" | sed -n 1p)"
   if [ "$key" = "ctrl-d" ]; then
     confirm_cleanup
+    continue
+  fi
+  if [ "$key" = "ctrl-g" ]; then
+    "$DIR/doctor.sh" --color 2>&1 | less -R --prompt='doctor - q: back to the list'
     continue
   fi
   line="$(printf '%s\n' "$sel" | sed -n 2p)"
