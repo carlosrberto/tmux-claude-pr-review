@@ -109,8 +109,8 @@ On `enter`:
 Watch mode polls GitHub in the background and, for each new PR that matches,
 opens a review window exactly as if you had picked it (`<repo>#<pr>` in the
 "Code Review" session, running your review command). A status-line segment
-shows what's going on, and you get a tmux message plus a macOS notification
-when a review is ready.
+shows what's going on, and you get [notifications](#notifications) when a
+review is ready or needs you.
 
 ### Setup
 
@@ -204,7 +204,8 @@ Lists the PRs watch mode tracks, most urgent first (`⚠ ✓ ⟳ ↻ ⧗ ○ ·`
 pending ones (`○`) it didn't auto-review. The
 preview is a live capture of the PR's review window, so you can read Claude's
 verdict without switching (`gh pr view` when it has no window). The header
-shows watch on/off and the last poll result, which explains a `PR ✗`. With
+shows watch on/off and the last poll result, which explains a `PR ✗` (and
+points at `ctrl-g` when something's wrong). With
 nothing tracked it shows a fallback row (and how to turn watch on if it's off).
 
 | Key      | Action                                    |
@@ -214,6 +215,7 @@ nothing tracked it shows a fallback row (and how to turn watch on if it's off).
 | `ctrl-o` | Open the PR on GitHub (popup stays open)  |
 | `ctrl-x` | Dismiss: close its window, remove its worktree, hide it (never auto-reviewed while it stays open) |
 | `ctrl-d` | Clean up every reviewed PR (asks first)   |
+| `ctrl-g` | Diagnose: the [doctor](#doctor) report (`q` returns) |
 
 `ctrl-d` closes the review windows and removes the review worktrees (and their
 branches) of every PR whose review finished (`✓`, `·`, `↻`). It's local only, so
@@ -241,13 +243,51 @@ The segment reads a tmux option the watcher keeps current
 set -g @claude-pr-review-watch          'off'   # initial state before the first toggle
 set -g @claude-pr-review-watch-interval '300'   # seconds between polls
 set -g @claude-pr-review-watch-max      '2'
-set -g @claude-pr-review-notify         'tmux macos'
 set -g @claude-pr-review-status-off     'PR ⏸'
 set -g @claude-pr-review-status-idle    'PR 👁'
 set -g @claude-pr-review-status-error   'PR ✗'
 set -g @claude-pr-review-state-dir      ''      # default: $XDG_STATE_HOME/tmux-claude-pr-review
 set -g @claude-pr-review-worktree       '.claude/worktrees/pr-review-{number}'  # under the clone, for cleanup
 ```
+
+### Notifications
+
+```tmux
+set -g @claude-pr-review-notify     'tmux system'   # channels, any of: tmux system terminal cmd
+set -g @claude-pr-review-notify-cmd ''              # for the cmd channel
+```
+
+| Channel    | Gets         | How |
+| ---------- | ------------ | --- |
+| `tmux`     | every event  | `tmux display-message` (status line) |
+| `system`   | alerts       | macOS: `terminal-notifier` if installed (click opens the PR), else `osascript`. Linux: `notify-send`. WSL: `wsl-notify-send.exe` |
+| `terminal` | alerts       | A desktop-notification escape sequence (OSC 777 for Ghostty/WezTerm/foot, else OSC 9 — iTerm2, kitty…) written to each attached client's terminal. Works over SSH; no `allow-passthrough` needed |
+| `cmd`      | every event  | `sh -c "$notify-cmd"` with `PR_EVENT`, `PR_MESSAGE`, `PR_URL`, `PR_LABEL`, `PR_TITLE` set |
+
+Alerts are `done` (review ready), `attention` (Claude is waiting on you) and
+`error` (watch couldn't start); the other events (`reviewing`, `baseline`,
+`watch`) are informational. `macos` still works as an alias of `system`. A
+channel whose tool is missing is skipped; [doctor](#doctor) says which work.
+
+`cmd` covers anything else — e.g. a phone push via [ntfy](https://ntfy.sh),
+only for alerts:
+
+```tmux
+set -g @claude-pr-review-notify-cmd 'case "$PR_EVENT" in done|attention) curl -s -d "$PR_MESSAGE $PR_URL" ntfy.sh/my-topic ;; esac'
+```
+
+### Doctor
+
+A read-only health check — options (unknown names, with a "did you mean";
+invalid values), dependencies (`gh` login, `fzf`, `claude`, tmux version), the
+Claude config dir and hooks, a local clone for every repo, the poller and last
+poll, and which notification channels can work here. Exits 1 if anything fails.
+
+```sh
+scripts/doctor.sh
+```
+
+Or `ctrl-g` in the tracked-PR popup.
 
 ### Inspecting
 
@@ -318,6 +358,8 @@ scripts/
   watch.sh                   # poller: start/stop/toggle/status/poll/dispatch
   status_picker.sh           # prefix + P popup of tracked PRs
   status_preview.sh          # its preview: live review window capture
+  notify.sh                  # notification channels (sourced)
+  doctor.sh                  # health check (also popup ctrl-g)
   cleanup.sh                 # close windows + remove worktrees of finished reviews
   mark.sh                    # review progress from Claude + tmux hooks
   install_hooks.sh           # add/remove the Claude Code hooks

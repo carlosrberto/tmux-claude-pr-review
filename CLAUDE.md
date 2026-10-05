@@ -35,19 +35,25 @@ tmux list-keys -T prefix R
 ./scripts/install_hooks.sh --dry-run
 ```
 
-To test watch mode without touching your real tmux or launching real reviews,
-put a `tmux` wrapper (`exec tmux -L prtest "$@"`) and a fake `claude` (logs its
-env/args, sleeps) first on `PATH`, `unset TMUX`, and point
-`@claude-pr-review-state-dir` at a scratch dir on that test server.
+To test without touching your real tmux server or launching real reviews: a
+`tmux` wrapper (`exec /path/to/tmux -L prtest "$@"`) and fakes (`claude`,
+`fzf`, `less`) first on `PATH`, `unset TMUX`, and a scratch
+`@claude-pr-review-state-dir`. **Run the test as a script under `set -euo
+pipefail` that first asserts `tmux display -p '#{socket_path}'` is the `prtest`
+socket, and tear down only with `tmux -L prtest kill-server`.** A sourced
+setup file that silently fails sends every bare `tmux` call — and any
+`kill-server` — to the live server.
 
 ## Architecture
 
 Four shell scripts; no build step. Data flows config → list → pick → act.
 
-- **`scripts/config.sh`** — sourced by the others. Reads configuration from
-  `@claude-pr-review-*` tmux options and exposes `cfg <logical-key>` (scalars)
-  and `cfg_list <logical-key>` (the repos list, split on commas/whitespace).
-  `cfg` maps logical keys to option names, so callers stay option-agnostic.
+- **`scripts/config.sh`** — sourced by the others. `CFG_OPTIONS` lists every
+  option; `load_cfg` reads them all in **one** `tmux display-message` (a
+  `\037`-separated format) into `_CFG_<name>` vars, and `_opt`/`cfg`/`cfg_list`
+  read those (unknown names fall back to `show-option`). Add new options to
+  `CFG_OPTIONS` — doctor.sh flags anything else as unknown. The poller re-runs
+  `load_cfg` each cycle. Also `find_clone` / `origin_slug` (shared).
 
 - **`scripts/picker.sh`** — lists PRs via `watch_list.sh --repos repos`, in
   two modes toggled with `ctrl-a` (re-runs the query): "yours"
@@ -94,6 +100,14 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
   (`done→seen`) so a poll doesn't re-queue them. The clone comes from the `clone`
   field `open_review.sh` records (fallback: the window's pane path); a worktree is
   removed only if `git worktree list` has it.
+- **`scripts/notify.sh`** (sourced by state.sh) — `notify <event> <msg>
+  [pr-key]` over the `@claude-pr-review-notify` channels: tmux, system
+  (terminal-notifier/osascript/notify-send/wsl-notify-send.exe), terminal (OSC
+  777/9 written straight to each client tty — no passthrough), cmd (env
+  `PR_*`). Alerts (`done`, `attention`, `error`) reach every channel; info events
+  only tmux + cmd. `notify_backend` is what doctor reports.
+- **`scripts/doctor.sh`** — read-only health check; popup `ctrl-g` pages it
+  through `less -R`.
 - **`scripts/install_hooks.sh`** — idempotent jq merge into
   `<claude_config_dir>/settings.json`, with a backup.
 
