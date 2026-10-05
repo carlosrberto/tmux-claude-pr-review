@@ -187,6 +187,14 @@ section "Notifications"
 
 for ch in $(cfg_list notify); do
   b="$(notify_backend "$ch")"
+  if [ "$b" = "terminal-notifier" ]; then
+    auth="$(terminal-notifier -diagnose 2>/dev/null | awk '/authorization/ { $1 = ""; sub(/^ +/, ""); print; exit }')"
+    case "$auth" in
+      authorized | provisional) ok "$ch: terminal-notifier (click: $(_or "$(_opt @claude-pr-review-notify-click)" window))" ;;
+      *) warn "$ch: terminal-notifier isn't allowed to notify (${auth:-unknown}) - using osascript instead. Allow it in System Settings > Notifications, or: brew uninstall terminal-notifier" ;;
+    esac
+    continue
+  fi
   if [ -n "$b" ]; then ok "$ch: $b"; continue; fi
   case "$ch" in
     system | macos)

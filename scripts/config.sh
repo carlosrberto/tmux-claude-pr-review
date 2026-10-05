@@ -22,6 +22,8 @@
 #   set -g @claude-pr-review-watch-skip-labels  ''
 #   set -g @claude-pr-review-notify             'tmux system'   # + terminal, cmd
 #   set -g @claude-pr-review-notify-cmd         ''         # for the cmd channel
+#   set -g @claude-pr-review-notify-click       'window'   # terminal-notifier click: window | github
+#   set -g @claude-pr-review-notify-app         ''         # terminal app bundle id to activate (auto)
 #   set -g @claude-pr-review-claude-config-dir  ''         # CLAUDE_CONFIG_DIR for review windows
 #   set -g @claude-pr-review-state-dir          ''         # default: $XDG_STATE_HOME/tmux-claude-pr-review
 
@@ -30,7 +32,8 @@
 CFG_OPTIONS="key width height preview-width preview-style repos filter clone-base
 session cmd claude-name claude-config-dir state-dir worktree watch watch-key
 status-key watch-repos watch-filter watch-interval watch-max watch-skip-drafts
-watch-skip-authors watch-skip-labels notify notify-cmd status-off status-idle
+watch-skip-authors watch-skip-labels notify notify-cmd notify-click notify-app
+status-off status-idle
 status-error"
 
 # load_cfg - read every option in CFG_OPTIONS with a single `tmux

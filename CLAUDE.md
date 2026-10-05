@@ -105,7 +105,10 @@ Four shell scripts; no build step. Data flows config → list → pick → act.
   (terminal-notifier/osascript/notify-send/wsl-notify-send.exe), terminal (OSC
   777/9 written straight to each client tty — no passthrough), cmd (env
   `PR_*`). Alerts (`done`, `attention`, `error`) reach every channel; info events
-  only tmux + cmd. `notify_backend` is what doctor reports.
+  only tmux + cmd. `notify_backend` is what doctor reports. terminal-notifier's
+  click (`-execute`) runs `tmux -S <socket> switch-client -c <client tty> -t
+  <window>` + `-activate <terminal bundle id>`; when it exits non-zero (macOS 26
+  refuses the unsigned build) the alert falls back to osascript.
 - **`scripts/doctor.sh`** — read-only health check; popup `ctrl-g` pages it
   through `less -R`.
 - **`scripts/install_hooks.sh`** — idempotent jq merge into

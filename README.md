@@ -260,9 +260,20 @@ set -g @claude-pr-review-notify-cmd ''              # for the cmd channel
 | Channel    | Gets         | How |
 | ---------- | ------------ | --- |
 | `tmux`     | every event  | `tmux display-message` (status line) |
-| `system`   | alerts       | macOS: `terminal-notifier` if installed (click opens the PR), else `osascript`. Linux: `notify-send`. WSL: `wsl-notify-send.exe` |
+| `system`   | alerts       | macOS: `terminal-notifier` if installed and allowed (click jumps to the review window, or the PR with `notify-click 'github'`), else `osascript`. Linux: `notify-send`. WSL: `wsl-notify-send.exe` |
 | `terminal` | alerts       | A desktop-notification escape sequence (OSC 777 for Ghostty/WezTerm/foot, else OSC 9 — iTerm2, kitty…) written to each attached client's terminal. Works over SSH; no `allow-passthrough` needed |
 | `cmd`      | every event  | `sh -c "$notify-cmd"` with `PR_EVENT`, `PR_MESSAGE`, `PR_URL`, `PR_LABEL`, `PR_TITLE` set |
+
+> **`terminal-notifier` on macOS 26.** The Homebrew build is ad-hoc signed,
+> and macOS may refuse it ("Notifications are not allowed for this
+> application"). The plugin then falls back to `osascript` (no click action),
+> and [doctor](#doctor) says so. If you use Ghostty, `terminal` is the better
+> alert channel there.
+
+```tmux
+set -g @claude-pr-review-notify-click 'window'  # terminal-notifier click: window | github
+set -g @claude-pr-review-notify-app   ''        # bundle id to bring forward (auto: Ghostty, iTerm2, WezTerm...)
+```
 
 Alerts are `done` (review ready), `attention` (Claude is waiting on you) and
 `error` (watch couldn't start); the other events (`reviewing`, `baseline`,
