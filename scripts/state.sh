@@ -90,6 +90,14 @@ watch_running() {
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
 }
 
+# server_name -> the socket name of the tmux server this runs under ("default",
+# or the -L name). Every server that loads tmux.conf loads this plugin too
+# (e.g. a popup tool's own -L server), but only one may run the poller.
+server_name() { basename "$(tmux display-message -p '#{socket_path}' 2>/dev/null)"; }
+
+# watch_server_ok -> 0 if this is the server @claude-pr-review-watch-server names.
+watch_server_ok() { [ "$(server_name)" = "$(cfg watch_server)" ]; }
+
 # config_dir_ok -> 0 if the Claude config dir review windows will use looks real.
 config_dir_ok() { [ -f "$(cfg claude_config_dir)/settings.json" ]; }
 

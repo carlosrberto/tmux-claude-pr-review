@@ -187,6 +187,11 @@ set -g @claude-pr-review-watch-skip-labels  ''
 - Merged/closed PRs, or ones no longer requested, are forgotten once their
   window is closed.
 - The toggle is persisted, so it survives a tmux restart.
+- **One tmux server runs the poller** — `@claude-pr-review-watch-server`
+  (socket name, default `default`). Tools that start their own `-L` server with
+  your tmux.conf (popup/session plugins) load this plugin too; there it keeps
+  its keys and popups but leaves the poller alone, so reviews always open on
+  your main server. Set it if your main server uses `-L <name>`.
 - **Sleep / offline.** A poll that falls due while the machine sleeps runs
   within ~15s of waking (the wait follows the wall clock, not a timer that
   pauses in standby). A failed poll (no network, `gh` auth) is retried after

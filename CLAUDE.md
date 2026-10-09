@@ -153,6 +153,14 @@ auto-review it. Files are only removed by `reconcile` once a PR stops matching.
   `$CLAUDE_PR_REVIEW_MARK`, so they're no-ops in ordinary sessions and survive
   the plugin moving.
 
+- **Every tmux server that loads tmux.conf loads this plugin** (e.g.
+  tmux-popup-session's `-L devhub` server). They share the state dir, so a
+  `watch.sh start` there used to stop the main poller and start one bound to
+  that server — reviews then opened in *its* "Code Review" session. `start`/
+  `toggle` now act only when `server_name` (socket basename) equals
+  `@claude-pr-review-watch-server`; the loop records its server in
+  `watch.server` for doctor.
+
 - **Don't `sleep <interval>` in the poller.** macOS pauses that timer in
   standby, so a due poll would run up to a full interval after waking.
   `wait_until` sleeps in 15s steps against the wall clock. Failed polls back off

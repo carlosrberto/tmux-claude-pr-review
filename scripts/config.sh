@@ -20,6 +20,7 @@
 #   set -g @claude-pr-review-watch-skip-drafts  'on'
 #   set -g @claude-pr-review-watch-skip-authors '@me dependabot renovate'
 #   set -g @claude-pr-review-watch-skip-labels  ''
+#   set -g @claude-pr-review-watch-server       'default'  # the one tmux server (socket name) that runs the poller
 #   set -g @claude-pr-review-notify             'tmux system'   # + terminal, cmd
 #   set -g @claude-pr-review-notify-cmd         ''         # for the cmd channel
 #   set -g @claude-pr-review-notify-click       'window'   # terminal-notifier click: window | github
@@ -32,7 +33,7 @@
 CFG_OPTIONS="key width height preview-width preview-style repos filter clone-base
 session cmd claude-name claude-config-dir state-dir worktree watch watch-key
 status-key watch-repos watch-filter watch-interval watch-max watch-skip-drafts
-watch-skip-authors watch-skip-labels notify notify-cmd notify-click notify-app
+watch-skip-authors watch-skip-labels watch-server notify notify-cmd notify-click notify-app
 status-off status-idle
 status-error"
 
@@ -83,6 +84,7 @@ cfg() {
     watch_interval)    _or "$(_opt @claude-pr-review-watch-interval)" 300 ;;
     watch_max)         _or "$(_opt @claude-pr-review-watch-max)" 2 ;;
     watch_skip_drafts) _or "$(_opt @claude-pr-review-watch-skip-drafts)" on ;;
+    watch_server)      _or "$(_opt @claude-pr-review-watch-server)" default ;;
     notify)            _or "$(_opt @claude-pr-review-notify)" "tmux system" ;;
     notify_cmd)        _opt @claude-pr-review-notify-cmd ;;
     status_off)        _or "$(_opt @claude-pr-review-status-off)" "PR ⏸" ;;

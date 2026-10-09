@@ -170,6 +170,7 @@ loop() {
     rm -rf "$lock"; mkdir "$lock" || exit 1
   fi
   echo $$ > "$STATE_DIR/watch.pid"
+  server_name > "$STATE_DIR/watch.server"
   # shellcheck disable=SC2064  # expand $lock now
   trap "[ -n \"\$sleeper\" ] && kill \$sleeper 2>/dev/null; rm -rf '$lock' '$STATE_DIR/watch.pid'" EXIT
   trap 'exit 0' TERM INT HUP
@@ -234,6 +235,12 @@ stop() {
 
 # start - restart semantics, so a tmux.conf reload picks up new code and config.
 start() {
+  # Another tmux server loading tmux.conf must not stop or take over the
+  # poller (it shares the state dir) - only the watch server starts it.
+  if ! watch_server_ok; then
+    log "start skipped on tmux server '$(server_name)' (watch runs on '$(cfg watch_server)')"
+    return 0
+  fi
   stop
   if watch_enabled; then
     if ! config_dir_ok; then
@@ -247,6 +254,10 @@ start() {
 }
 
 toggle() {
+  if ! watch_server_ok; then
+    notify watch "watch runs on the '$(cfg watch_server)' tmux server, not '$(server_name)' - toggle it there"
+    return 0
+  fi
   if watch_enabled; then
     echo off > "$STATE_DIR/enabled"
     stop

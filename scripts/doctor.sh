@@ -161,8 +161,14 @@ done
 section "Watch mode"
 
 if watch_enabled; then ok "watch on"; else warn "watch off$(_opt @claude-pr-review-watch-key | sed 's/^./ - prefix + & turns it on/')"; fi
+ws="$(cfg watch_server)"
+ps_server="$(cat "$STATE_DIR/watch.server" 2>/dev/null || true)"
 if watch_running; then
-  ok "poller running (pid $(cat "$STATE_DIR/watch.pid"))"
+  if [ -n "$ps_server" ] && [ "$ps_server" != "$ws" ]; then
+    bad "poller is attached to tmux server '$ps_server', not '$ws' - reviews open there. Reload tmux.conf on '$ws' to move it"
+  else
+    ok "poller running (pid $(cat "$STATE_DIR/watch.pid")) on tmux server '${ps_server:-?}'"
+  fi
 elif watch_enabled; then
   bad "watch is on but the poller isn't running - toggle watch off and on, or: $DIR/watch.sh start"
 fi
